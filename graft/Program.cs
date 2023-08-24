@@ -111,6 +111,8 @@ var branches = ((YamlSequenceNode)train.Value).Children
         // todo: better way to interpret the merged flag bc this sucks lol
         : new GraftBranch(((YamlMappingNode)x).Children.First().Key.ToString(), true)).ToList();
 
+branches.Add(new GraftBranch(baseBranch));
+
 // Now we construct the train on the console
 AnsiConsole.MarkupLine($"[gray]{trainName}[/]");
 AnsiConsole.Status()
@@ -121,27 +123,29 @@ AnsiConsole.Status()
     });
 
 // Synchronous
-AnsiConsole.Status()
-    .Start("Thinking...", ctx =>
-    {
-        ctx.Spinner(Spinner.Known.Aesthetic);
-        ctx.SpinnerStyle(Style.Parse("green"));
-
-        ctx.Status("Building graft train (local branches)");
-        Thread.Sleep(3000);
-
-        ctx.Status("Building graft train (remote branches)");
-        Thread.Sleep(3000);
-
-        ctx.Status("Building graft train (remote PRs)");
-
-        // PrintDemoTree();
-        Thread.Sleep(3000);
-    });
+// AnsiConsole.Status()
+//     .Start("Thinking...", ctx =>
+//     {
+//         ctx.Spinner(Spinner.Known.Aesthetic);
+//         ctx.SpinnerStyle(Style.Parse("green"));
+//
+//         ctx.Status("Building graft train (local branches)");
+//         Thread.Sleep(3000);
+//
+//         ctx.Status("Building graft train (remote branches)");
+//         Thread.Sleep(3000);
+//
+//         ctx.Status("Building graft train (remote PRs)");
+//
+//         // PrintDemoTree();
+//         Thread.Sleep(3000);
+//     });
 
 // Now we construct the train on the console
 foreach (var branch in branches)
 {
+    if (branch.Name == baseBranch) continue;
+    
     if (branch.IsMerged)
     {
         AnsiConsole.MarkupLine($"- [gray]{branch.Name}[/] [gray](merged)[/]");
@@ -152,26 +156,25 @@ foreach (var branch in branches)
         ? $"[green]{branch.Name}[/]"
         : branch.Name;
 
-    AnsiConsole.MarkupLine(
-        $"- {name} [gray]({GetBranchStatus(branch.Name)})[/] [blue]({GetRemoteBranchStatus(branch.Name)})[/]");
+    AnsiConsole.MarkupLine($"- {name} {GetBranchStatus(branch.Name)} {GetRemoteBranchStatus(branch.Name)}");
 }
 
 // Get base branch status (as above)
-//   fetch origin/base
-//   - make note of how many commits it is behind
-//     - if it is ahead, this is a fail state. tell the user to resolve manually
+//   fetch origin/base DONE
+//   - make note of how many commits it is behind DONE
+//     - if it is ahead, this is a fail state. tell the user to resolve manually DONE
 // Get branch status (as above)
 //   for each branch
-//     fetch origin/branch
-//     - is it a merged branch?
-//         - if yes, skip it, but make note (so that the PR tables can be updated)
-//     - check that there *is* an origin branch
-//         - if there is not, make note of this for later (so we can create one)
-//     - check if there are un-pulled commits on the origin
-//         - if there are, make note of this for later (so we can pull them)
-//     - check if there is a divergent history on the origin
-//         - if there is, make note of this for later (so we can ask the user what to do)
-//     - check if there is at least one open PR on the origin
+//     fetch origin/branch DONE
+//     - is it a merged branch? DONE
+//         - if yes, skip it, but make note (so that the PR tables can be updated) DONE
+//     - check that there *is* an origin branch DONE
+//         - if there is not, make note of this for later (so we can create one) DONE
+//     - check if there are un-pulled commits on the origin DONE
+//         - if there are, make note of this for later (so we can pull them) DONE
+//     - check if there is a divergent history on the origin DONE
+//         - if there is, fail and notify the user to resolve manually DONE
+//     - check if there is at least one open PR on the origin TODO
 //         - if there is, use it as the PR for the branch
 //         - if there is a PR for the branch but it is closed, ask the user what to do
 //             - save the users response for later
@@ -191,31 +194,44 @@ foreach (var branch in branches)
 //     create a PR for the branch with updated table
 
 
-Console.WriteLine();
-var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
-{
-    "Mark this branch as merged",
-    "Create a new PR for this branch",
-    "Remove this branch from the train entirely"
-});
-Console.WriteLine($"Hello, {city}!");
+// Console.WriteLine();
+// var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
+// {
+//     "Mark this branch as merged",
+//     "Create a new PR for this branch",
+//     "Remove this branch from the train entirely"
+// });
+// Console.WriteLine($"Hello, {city}!");
+
 
 // Mark the "mitchazj-branch-three" branch as merged
 // var cb = branches.First(x => x.Name == "mitchazj-branch-three");
-// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath);
+// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
 
 string GetBranchStatus(string branchName)
 {
     try
     {
-        var nextBranch = branches.SkipWhile(x => x.Name != branchName).Skip(1).FirstOrDefault();
+        var nextBranch = branches.SkipWhile(x => x.Name != branchName)
+            .SkipWhile(x => x.IsMerged)
+            .Skip(1)
+            .FirstOrDefault();
 
+        if (nextBranch.Name == baseBranch)
+        {
+            // The base branch is always the last branch on the train
+            throw new KnownException("end of train");
+        }
+        
         var (ahead, _) = CompareBranches(branchName, nextBranch.Name);
-        return $"{ahead} commits need grafting";
+        return ahead == 0
+            ? $"[gray]({ahead} commits need grafting)[/]"
+            : $"[yellow]({ahead} commits need grafting)[/]";
     }
     catch
     {
-        return "end of train";
+        // TODO: make this catch more specific to avoid swallowing errors
+        return "[gray](end of train)[/]";
     }
 }
 
@@ -224,11 +240,20 @@ string GetRemoteBranchStatus(string branchName)
     try
     {
         var (_, behind) = GetAheadBehind(branchName);
-        return $"origin: {behind} un-pulled commits";
+
+        if (behind == -1)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] {branchName} has diverged from origin. Please fix this manually.");
+            Environment.Exit(1);
+        }
+
+        return behind == 0
+            ? $"[gray](origin: {behind} un-pulled commits)[/]"
+            : $"[blue](origin: {behind} un-pulled commits)[/]";
     }
-    catch (InvalidOperationException)
+    catch (KnownException)
     {
-        return "no origin branch";
+        return "[blue](no origin branch)[/]";
     }
 }
 
@@ -237,17 +262,26 @@ string GetBaseBranchStatus()
     try
     {
         var (ahead, behind) = GetAheadBehind(baseBranch);
+
         if (ahead > 0)
         {
             AnsiConsole.MarkupLine("[red]Error:[/] The base branch is ahead of origin. Please fix this manually.");
             Environment.Exit(1);
         }
 
+        if (behind == -1)
+        {
+            AnsiConsole.MarkupLine(
+                "[red]Error:[/] The base branch has diverged from origin. Please fix this manually.");
+            Environment.Exit(1);
+        }
+
         return $"{behind} commits behind";
     }
-    catch (InvalidOperationException)
+    catch (KnownException)
     {
-        AnsiConsole.MarkupLine("[red]Error:[/] The base branch does not have a tracking branch. Please fix this manually.");
+        AnsiConsole.MarkupLine(
+            "[red]Error:[/] The base branch does not have a tracking branch. Please fix this manually.");
         Environment.Exit(1);
         return "";
     }
@@ -285,29 +319,76 @@ void FetchBranches()
 
 (int? ahead, int? behind) CompareBranches(string branchName, string compareBranchName)
 {
-    // todo: handle the potential lookup crash here properly
     var branch = repo.Branches[branchName];
+    if (branch == null)
+    {
+        AnsiConsole.MarkupLine($"[red]Error:[/] No branch {branchName} exists, please repair your .pr-train.yml file");
+        Environment.Exit(1);
+        return (0, 0);
+    }
+
     var compareBranch = repo.Branches[compareBranchName];
+    if (compareBranch == null)
+    {
+        AnsiConsole.MarkupLine(
+            $"[red]Error:[/] No branch {compareBranchName} exists, please repair your .pr-train.yml file");
+        Environment.Exit(1);
+        return (0, 0);
+    }
 
     var ahead = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, compareBranch.Tip).AheadBy;
     var behind = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, compareBranch.Tip).BehindBy;
 
-    return (ahead, behind);
+    if (ahead != null && behind != null)
+    {
+        branches.First(x => x.Name == branchName).AheadOfNextBranchBy = (int)ahead;
+        branches.First(x => x.Name == branchName).BehindNextBranchBy = (int)behind;
+        return (ahead, behind);
+    }
+
+    AnsiConsole.MarkupLine(
+        $"[red]Error:[/] {branchName} has diverged from {compareBranchName}. Please fix this manually.");
+    Environment.Exit(1);
+    return (-1, -1);
 }
 
 (int? ahead, int? behind) GetAheadBehind(string branchName)
 {
-    // todo: handle the lookup bug here properly
     var branch = repo.Branches[branchName];
-    var trackingBranch = branch.TrackedBranch;
+    if (branch == null)
+    {
+        AnsiConsole.MarkupLine($"[red]Error:[/] No branch {branchName} exists, please repair your .pr-train.yml file");
+        Environment.Exit(1);
+        return (0, 0);
+    }
 
+    var trackingBranch = branch.TrackedBranch;
     if (trackingBranch == null)
     {
-        throw new InvalidOperationException($"No tracked branch for {branchName}");
+        branches.First(x => x.Name == branchName).HasOrigin = false;
+        throw new KnownException($"No tracked branch for {branchName}");
     }
 
     var ahead = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, trackingBranch.Tip).AheadBy;
     var behind = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, trackingBranch.Tip).BehindBy;
 
+    if (ahead == null || behind == null)
+    {
+        // TODO: check that this is implemented correctly
+        branches.First(x => x.Name == branchName).HasDivergedFromOrigin = true;
+        return (-1, -1);
+    }
+
+    branches.First(x => x.Name == branchName).AheadOfOriginBy = (int)ahead;
+    branches.First(x => x.Name == branchName).BehindOriginBy = (int)behind;
+
     return (ahead, behind);
+}
+
+public class KnownException : Exception
+{
+    public KnownException(string s)
+    {
+        // TODO: do something with the string?
+    }
 }

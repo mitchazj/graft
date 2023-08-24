@@ -1,6 +1,6 @@
-﻿// See https://aka.ms/new-console-template for more information
-
+﻿using System.Diagnostics;
 using graft;
+using LibGit2Sharp;
 using Octokit;
 using Sharprompt;
 using Spectre.Console;
@@ -53,7 +53,7 @@ if (!File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile
 var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.graft/token");
 
 // Create the github client
-var client = new GitHubClient(new ProductHeaderValue("graft")) { Credentials = new Credentials(token) };
+var client = new GitHubClient(new ProductHeaderValue("graft")) { Credentials = new Octokit.Credentials(token) };
 
 // Get the base branch
 string baseBranch;
@@ -116,7 +116,7 @@ AnsiConsole.MarkupLine($"[gray]{trainName}[/]");
 AnsiConsole.Status()
     .Start($"Fetching origin/{baseBranch}...", ctx =>
     {
-        Thread.Sleep(3000);
+        FetchBranches();
         AnsiConsole.MarkupLine($"- [blue]{baseBranch}[/] [gray]({GetBaseBranchStatus()})[/]");
     });
 
@@ -159,6 +159,7 @@ foreach (var branch in branches)
 // Get base branch status (as above)
 //   fetch origin/base
 //   - make note of how many commits it is behind
+//     - if it is ahead, this is a fail state. tell the user to resolve manually
 // Get branch status (as above)
 //   for each branch
 //     fetch origin/branch
@@ -200,27 +201,113 @@ var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on
 Console.WriteLine($"Hello, {city}!");
 
 // Mark the "mitchazj-branch-three" branch as merged
-var cb = branches.First(x => x.Name == "mitchazj-branch-three");
-cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath);
-
+// var cb = branches.First(x => x.Name == "mitchazj-branch-three");
+// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath);
 
 string GetBranchStatus(string branchName)
 {
-    return "2 commits need grafting";
+    try
+    {
+        var nextBranch = branches.SkipWhile(x => x.Name != branchName).Skip(1).FirstOrDefault();
+
+        var (ahead, _) = CompareBranches(branchName, nextBranch.Name);
+        return $"{ahead} commits need grafting";
+    }
+    catch
+    {
+        return "end of train";
+    }
 }
 
 string GetRemoteBranchStatus(string branchName)
 {
-    return "origin: 2 unpulled commits";
+    try
+    {
+        var (_, behind) = GetAheadBehind(branchName);
+        return $"origin: {behind} un-pulled commits";
+    }
+    catch (InvalidOperationException)
+    {
+        return "no origin branch";
+    }
 }
 
 string GetBaseBranchStatus()
 {
-    return "152 commits behind";
+    try
+    {
+        var (ahead, behind) = GetAheadBehind(baseBranch);
+        if (ahead > 0)
+        {
+            AnsiConsole.MarkupLine("[red]Error:[/] The base branch is ahead of origin. Please fix this manually.");
+            Environment.Exit(1);
+        }
+
+        return $"{behind} commits behind";
+    }
+    catch (InvalidOperationException)
+    {
+        AnsiConsole.MarkupLine("[red]Error:[/] The base branch does not have a tracking branch. Please fix this manually.");
+        Environment.Exit(1);
+        return "";
+    }
 }
 
-// Steps:
-// 1. Read the github token from ~/.branch/token or (compat with realyse/git-pr-train)
-//   - fail and notify the user if it does not exist
-// 2. Read the current branch name
-// 3. Determine if the branch is a PR branch
+void FetchBranches()
+{
+    // Use a call to the git cli instead of libgit2sharp, since libgit2sharp
+    // doesn't play nicely with SSH credentials.
+
+    // This approaches lets us use the user's system git + ssh-agent
+    // todo: does this surface roo / okta 2fa requests correctly?
+
+    var psi = new ProcessStartInfo
+    {
+        FileName = "git",
+        Arguments = "fetch",
+        WorkingDirectory = rootPath,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        CreateNoWindow = true,
+        UseShellExecute = false
+    };
+    var process = Process.Start(psi);
+
+    process.WaitForExit();
+
+    if (process.ExitCode == 0) return;
+
+    AnsiConsole.MarkupLine("[red]Error:[/] Failed to fetch branches from origin");
+    AnsiConsole.WriteLine("");
+    AnsiConsole.WriteLine(process.StandardError.ReadToEnd());
+    Environment.Exit(1);
+}
+
+(int? ahead, int? behind) CompareBranches(string branchName, string compareBranchName)
+{
+    // todo: handle the potential lookup crash here properly
+    var branch = repo.Branches[branchName];
+    var compareBranch = repo.Branches[compareBranchName];
+
+    var ahead = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, compareBranch.Tip).AheadBy;
+    var behind = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, compareBranch.Tip).BehindBy;
+
+    return (ahead, behind);
+}
+
+(int? ahead, int? behind) GetAheadBehind(string branchName)
+{
+    // todo: handle the lookup bug here properly
+    var branch = repo.Branches[branchName];
+    var trackingBranch = branch.TrackedBranch;
+
+    if (trackingBranch == null)
+    {
+        throw new InvalidOperationException($"No tracked branch for {branchName}");
+    }
+
+    var ahead = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, trackingBranch.Tip).AheadBy;
+    var behind = repo.ObjectDatabase.CalculateHistoryDivergence(branch.Tip, trackingBranch.Tip).BehindBy;
+
+    return (ahead, behind);
+}

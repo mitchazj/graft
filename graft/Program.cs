@@ -56,8 +56,12 @@ var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder
 var client = new GitHubClient(new ProductHeaderValue("graft")) { Credentials = new Credentials(token) };
 
 // Get the base branch
-var baseBranch = ((YamlMappingNode)yaml.Documents[0].RootNode["prs"])["main-branch-name"].ToString();
-if (baseBranch == null)
+string baseBranch;
+try
+{
+    baseBranch = ((YamlMappingNode)yaml.Documents[0].RootNode["prs"])["main-branch-name"].ToString();
+}
+catch
 {
     AnsiConsole.MarkupLine("[red]Error:[/] No base branch specified in .pr-train.yml");
     return;
@@ -83,7 +87,7 @@ var trains = (YamlMappingNode)yaml.Documents[0].RootNode["trains"];
 var allBranches = trains.Children.Values.SelectMany(x => ((YamlSequenceNode)x).Children)
     .Select<YamlNode, GraftBranch>(x => x is YamlScalarNode
         ? new GraftBranch(x.ToString())
-        // todo: better way to interpret the merged flag
+        // todo: better way to interpret the merged flag bc this sucks lol
         : new GraftBranch(((YamlMappingNode)x).Children.First().Key.ToString(), true)).ToList();
 
 if (!allBranches.Select(x => x.Name).Contains(currentBranch))
@@ -104,13 +108,38 @@ var trainName = train.Key.ToString();
 var branches = ((YamlSequenceNode)train.Value).Children
     .Select<YamlNode, GraftBranch>(x => x is YamlScalarNode
         ? new GraftBranch(x.ToString())
-        // todo: better way to interpret the merged flag
+        // todo: better way to interpret the merged flag bc this sucks lol
         : new GraftBranch(((YamlMappingNode)x).Children.First().Key.ToString(), true)).ToList();
 
 // Now we construct the train on the console
 AnsiConsole.MarkupLine($"[gray]{trainName}[/]");
-AnsiConsole.MarkupLine($"- [blue]{baseBranch}[/] [gray]({GetBaseBranchStatus()})[/]");
+AnsiConsole.Status()
+    .Start($"Fetching origin/{baseBranch}...", ctx =>
+    {
+        Thread.Sleep(3000);
+        AnsiConsole.MarkupLine($"- [blue]{baseBranch}[/] [gray]({GetBaseBranchStatus()})[/]");
+    });
 
+// Synchronous
+AnsiConsole.Status()
+    .Start("Thinking...", ctx =>
+    {
+        ctx.Spinner(Spinner.Known.Aesthetic);
+        ctx.SpinnerStyle(Style.Parse("green"));
+
+        ctx.Status("Building graft train (local branches)");
+        Thread.Sleep(3000);
+
+        ctx.Status("Building graft train (remote branches)");
+        Thread.Sleep(3000);
+
+        ctx.Status("Building graft train (remote PRs)");
+
+        // PrintDemoTree();
+        Thread.Sleep(3000);
+    });
+
+// Now we construct the train on the console
 foreach (var branch in branches)
 {
     if (branch.IsMerged)
@@ -127,24 +156,39 @@ foreach (var branch in branches)
         $"- {name} [gray]({GetBranchStatus(branch.Name)})[/] [blue]({GetRemoteBranchStatus(branch.Name)})[/]");
 }
 
-// Synchronous
-AnsiConsole.Status()
-    .Start("Thinking...", ctx =>
-    {
-        ctx.Spinner(Spinner.Known.Aesthetic);
-        ctx.SpinnerStyle(Style.Parse("green"));
+// Get base branch status (as above)
+//   fetch origin/base
+//   - make note of how many commits it is behind
+// Get branch status (as above)
+//   for each branch
+//     fetch origin/branch
+//     - is it a merged branch?
+//         - if yes, skip it, but make note (so that the PR tables can be updated)
+//     - check that there *is* an origin branch
+//         - if there is not, make note of this for later (so we can create one)
+//     - check if there are un-pulled commits on the origin
+//         - if there are, make note of this for later (so we can pull them)
+//     - check if there is a divergent history on the origin
+//         - if there is, make note of this for later (so we can ask the user what to do)
+//     - check if there is at least one open PR on the origin
+//         - if there is, use it as the PR for the branch
+//         - if there is a PR for the branch but it is closed, ask the user what to do
+//             - save the users response for later
+//         - if there are no PRs, make note of this for later (so we can create one later)
+//     - check how many commits are on this branch that are not on the next branch
+// merge origin/base into local/base (should fast-forward)
+// for each branch (skipping those marked as merged)
+//   merge origin/branch into local/branch (should fast-forward, but if not, pause for conflict resolution)
+// merge local/base into local/branch1 (or next, if branch1 is merged)
+// then merge local/branch1 into local/branch2, local/branch2 into local/branch3, etc (skipping merged branches)
+// for each branch (skipping those marked as merged)
+//   push local/branch to origin/branch, creating origin/branch if it does not exist
+// for each branch
+//   if there is a PR for the branch
+//     update the table
+//   else
+//     create a PR for the branch with updated table
 
-        ctx.Status("Checking local branches");
-        Thread.Sleep(3000);
-
-        ctx.Status("Checking remote branches");
-        Thread.Sleep(3000);
-
-        ctx.Status("Checking remote PRs");
-
-        // PrintDemoTree();
-        Thread.Sleep(3000);
-    });
 
 Console.WriteLine();
 var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
@@ -158,9 +202,6 @@ Console.WriteLine($"Hello, {city}!");
 // Mark the "mitchazj-branch-three" branch as merged
 var cb = branches.First(x => x.Name == "mitchazj-branch-three");
 cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath);
-
-// Create a new PR for the "mitchazj-branch-three" branch
-
 
 
 string GetBranchStatus(string branchName)

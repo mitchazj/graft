@@ -1,6 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using graft;
 using Octokit;
+using Sharprompt;
 using Spectre.Console;
 using YamlDotNet.RepresentationModel;
 
@@ -34,7 +36,8 @@ if (!File.Exists(rootPath + "/.pr-train.yml"))
 
 // Read the .pr-train.yml file
 var yaml = new YamlStream();
-using (var reader = new StreamReader(rootPath + "/.pr-train.yml"))
+var ymlFilePath = rootPath + "/.pr-train.yml";
+using (var reader = new StreamReader(ymlFilePath))
 {
     yaml.Load(reader);
 }
@@ -52,29 +55,6 @@ var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder
 // Create the github client
 var client = new GitHubClient(new ProductHeaderValue("graft")) { Credentials = new Credentials(token) };
 
-// Check whether the current branch is a PR branch
-// We can determine this by seeing if the branch name appears in .pr-train.yml which has structure:
-// prs:
-//   base: master
-//   # config
-// trains:
-//   some train name:
-//     - branch1
-//     - branch2
-//     - branch3
-//   some other train name:
-//     - cool-changes
-//     - more-cool-changes
-
-var trains = (YamlMappingNode)yaml.Documents[0].RootNode["trains"];
-var branchNames = trains.Children.Values.SelectMany(x => ((YamlSequenceNode)x).Children).Select(x => x.ToString())
-    .ToList();
-if (!branchNames.Contains(currentBranch))
-{
-    AnsiConsole.MarkupLine("[red]Error:[/] The current branch is not a PR branch");
-    return;
-}
-
 // Get the base branch
 var baseBranch = ((YamlMappingNode)yaml.Documents[0].RootNode["prs"])["main-branch-name"].ToString();
 if (baseBranch == null)
@@ -83,22 +63,68 @@ if (baseBranch == null)
     return;
 }
 
-// Print a list of all the branches in this train
-var train = trains.Children.First(x => ((YamlSequenceNode)x.Value).Children.Contains(currentBranch));
-var trainName = train.Key.ToString();
-var trainBranches = ((YamlSequenceNode)train.Value).Children.Select(x => x.ToString()).ToList();
+// Next we need to check whether the current branch is a PR branch.
+// We can determine this by seeing if the branch name appears in .pr-train.yml which has structure:
+// prs:
+//   base: master
+//   # config
+// trains:
+//   some train name:
+//     - branch1
+//     - branch2:
+//         dead: true
+//     - branch3
+//   some other train name:
+//     - cool-changes
+//     - more-cool-changes
 
+var trains = (YamlMappingNode)yaml.Documents[0].RootNode["trains"];
+
+var allBranches = trains.Children.Values.SelectMany(x => ((YamlSequenceNode)x).Children)
+    .Select<YamlNode, GraftBranch>(x => x is YamlScalarNode
+        ? new GraftBranch(x.ToString())
+        // todo: better way to interpret the merged flag
+        : new GraftBranch(((YamlMappingNode)x).Children.First().Key.ToString(), true)).ToList();
+
+if (!allBranches.Select(x => x.Name).Contains(currentBranch))
+{
+    AnsiConsole.MarkupLine("[red]Error:[/] The current branch is not a PR branch");
+    return;
+}
+
+// Select the train that the current branch is on
+var train = trains.Children.First(x =>
+    ((YamlSequenceNode)x.Value).Children
+    .Select<YamlNode, string>(x =>
+        x is YamlScalarNode ? x.ToString() : ((YamlMappingNode)x).Children.First().Key.ToString())
+    .Contains(currentBranch));
+
+var trainName = train.Key.ToString();
+
+var branches = ((YamlSequenceNode)train.Value).Children
+    .Select<YamlNode, GraftBranch>(x => x is YamlScalarNode
+        ? new GraftBranch(x.ToString())
+        // todo: better way to interpret the merged flag
+        : new GraftBranch(((YamlMappingNode)x).Children.First().Key.ToString(), true)).ToList();
+
+// Now we construct the train on the console
 AnsiConsole.MarkupLine($"[gray]{trainName}[/]");
 AnsiConsole.MarkupLine($"- [blue]{baseBranch}[/] [gray]({GetBaseBranchStatus()})[/]");
-foreach (var branch in trainBranches)
+
+foreach (var branch in branches)
 {
-    if (branch == currentBranch)
+    if (branch.IsMerged)
     {
-        AnsiConsole.MarkupLine($"- [green]{branch}[/]");
+        AnsiConsole.MarkupLine($"- [gray]{branch.Name}[/] [gray](merged)[/]");
         continue;
     }
 
-    AnsiConsole.MarkupLine($"- {branch} [gray]({GetBranchStatus(branch)})[/] [blue]({GetRemoteBranchStatus(branch)})[/]");
+    var name = branch.Name == currentBranch
+        ? $"[green]{branch.Name}[/]"
+        : branch.Name;
+
+    AnsiConsole.MarkupLine(
+        $"- {name} [gray]({GetBranchStatus(branch.Name)})[/] [blue]({GetRemoteBranchStatus(branch.Name)})[/]");
 }
 
 // Synchronous
@@ -115,9 +141,27 @@ AnsiConsole.Status()
         Thread.Sleep(3000);
 
         ctx.Status("Checking remote PRs");
+
         // PrintDemoTree();
         Thread.Sleep(3000);
     });
+
+Console.WriteLine();
+var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
+{
+    "Mark this branch as merged",
+    "Create a new PR for this branch",
+    "Remove this branch from the train entirely"
+});
+Console.WriteLine($"Hello, {city}!");
+
+// Mark the "mitchazj-branch-three" branch as merged
+var cb = branches.First(x => x.Name == "mitchazj-branch-three");
+cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath);
+
+// Create a new PR for the "mitchazj-branch-three" branch
+
+
 
 string GetBranchStatus(string branchName)
 {
@@ -132,41 +176,6 @@ string GetRemoteBranchStatus(string branchName)
 string GetBaseBranchStatus()
 {
     return "152 commits behind";
-}
-
-void PrintBranches()
-{
-    foreach (var branch in repo.Branches)
-    {
-        AnsiConsole.MarkupLine(branch.FriendlyName);
-    }
-}
-
-void PrintDemoTree()
-{
-    // Create the tree
-    var root = new Tree("Root");
-
-    // Add some nodes
-    var foo = root.AddNode("[yellow]Foo[/]");
-    var table = foo.AddNode(new Table()
-        .RoundedBorder()
-        .AddColumn("First")
-        .AddColumn("Second")
-        .AddRow("1", "2")
-        .AddRow("3", "4")
-        .AddRow("5", "6"));
-
-    table.AddNode("[blue]Baz[/]");
-    foo.AddNode("Qux");
-
-    var bar = root.AddNode("[yellow]Bar[/]");
-    bar.AddNode(new Calendar(2020, 12)
-        .AddCalendarEvent(2020, 12, 12)
-        .HideHeader());
-
-    // Render the tree
-    AnsiConsole.Write(root);
 }
 
 // Steps:

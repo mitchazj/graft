@@ -246,6 +246,8 @@ for (var i = 0; i < branches.Count; ++i)
 }
 
 AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
+Console.WriteLine();
+AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
 for (var i = 0; i < branches.Count; ++i)
 {
@@ -277,7 +279,7 @@ for (var i = 0; i < branches.Count; ++i)
             if (!Prompt.Confirm("Continue?")) return;
         }
 
-        AnsiConsole.MarkupLine($"[green]Updated {nextBranch.Name}.[/]");
+        AnsiConsole.MarkupLine($"[green]Grafted {branch.Name} unto {nextBranch.Name}.[/]");
     }
 }
 

@@ -218,7 +218,7 @@ if (userName == null || userEmail == null)
 
 if (repo.RetrieveStatus().IsDirty)
 {
-    AnsiConsole.MarkupLine("[red}Error:[/] Your current repository is in a dirty state, please fix this before continuning.");
+    AnsiConsole.MarkupLine("[red}Error:[/] Your current repository is in a dirty state, please fix this before continuning.[/]");
     return;
 }
 
@@ -249,16 +249,16 @@ else
     AnsiConsole.MarkupLine($"[gray]{baseBranch} is already up-to-date.[/]");
 }
 
-for (var i = 0; i < branches.Count; ++i)
-{
-    var branch = branches[i];
-    if (branch.Name == baseBranch) return;
-    if (branch.IsMerged) AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
-    if (branch.BehindOriginBy > 0)
-    {
-        var branchRepo = repo.Branches[branch.Name];
-    }
-}
+//for (var i = 0; i < branches.Count; ++i)
+//{
+//    var branch = branches[i];
+//    if (branch.Name == baseBranch) return;
+//    if (branch.IsMerged) AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
+//    if (branch.BehindOriginBy > 0)
+//    {
+//        var branchRepo = repo.Branches[branch.Name];
+//    }
+//}
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

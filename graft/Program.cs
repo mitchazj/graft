@@ -5,6 +5,7 @@ using Octokit;
 using Sharprompt;
 using Spectre.Console;
 using YamlDotNet.RepresentationModel;
+using Credentials = Octokit.Credentials;
 
 // var root = new RootCommand
 // {
@@ -17,6 +18,7 @@ using YamlDotNet.RepresentationModel;
 // Determine the current working directory
 var rootPath = Environment.CurrentDirectory;
 
+// TODO: technically there's an error case to consider here I suppose
 // Go up until we find a .git folder
 while (!Directory.Exists(Path.Combine(rootPath, ".git")))
 {
@@ -53,7 +55,16 @@ if (!File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile
 var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.graft/token");
 
 // Create the github client
-var client = new GitHubClient(new ProductHeaderValue("graft")) { Credentials = new Octokit.Credentials(token) };
+GitHubClient client;
+try
+{
+    client = new GitHubClient(new ProductHeaderValue("graft")) { Credentials = new Credentials(token) };
+}
+catch
+{
+    AnsiConsole.MarkupLine("[red]Error:[/] Failed to authenticate with github");
+    return;
+}
 
 // Get the base branch
 string baseBranch;
@@ -145,7 +156,7 @@ AnsiConsole.Status()
 foreach (var branch in branches)
 {
     if (branch.Name == baseBranch) continue;
-    
+
     if (branch.IsMerged)
     {
         AnsiConsole.MarkupLine($"- [gray]{branch.Name}[/] [gray](merged)[/]");
@@ -159,6 +170,7 @@ foreach (var branch in branches)
     AnsiConsole.MarkupLine($"- {name} {GetBranchStatus(branch.Name)} {GetRemoteBranchStatus(branch.Name)}");
 }
 
+// TODO: exit if the repo is dirty / uncommitted changes
 // Get base branch status (as above)
 //   fetch origin/base DONE
 //   - make note of how many commits it is behind DONE
@@ -174,12 +186,8 @@ foreach (var branch in branches)
 //         - if there are, make note of this for later (so we can pull them) DONE
 //     - check if there is a divergent history on the origin DONE
 //         - if there is, fail and notify the user to resolve manually DONE
-//     - check if there is at least one open PR on the origin TODO
-//         - if there is, use it as the PR for the branch
-//         - if there is a PR for the branch but it is closed, ask the user what to do
-//             - save the users response for later
-//         - if there are no PRs, make note of this for later (so we can create one later)
-//     - check how many commits are on this branch that are not on the next branch
+//     - check how many commits are on this branch that are not on the next branch DONE
+//
 // merge origin/base into local/base (should fast-forward)
 // for each branch (skipping those marked as merged)
 //   merge origin/branch into local/branch (should fast-forward, but if not, pause for conflict resolution)
@@ -192,6 +200,10 @@ foreach (var branch in branches)
 //     update the table
 //   else
 //     create a PR for the branch with updated table
+
+// Merge origin/base into local/base
+var baseBranchTip = repo.Branches[baseBranch].Tip;
+var baseBranchTrackingBranch = repo.Branches[baseBranch].TrackedBranch;
 
 
 // Console.WriteLine();
@@ -222,7 +234,7 @@ string GetBranchStatus(string branchName)
             // The base branch is always the last branch on the train
             throw new KnownException("end of train");
         }
-        
+
         var (ahead, _) = CompareBranches(branchName, nextBranch.Name);
         return ahead == 0
             ? $"[gray]({ahead} commits need grafting)[/]"
@@ -230,7 +242,7 @@ string GetBranchStatus(string branchName)
     }
     catch
     {
-        // TODO: make this catch more specific to avoid swallowing errors
+        // TODO: make this catch more specific to avoid swallowing unintentional errors
         return "[gray](end of train)[/]";
     }
 }

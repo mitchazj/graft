@@ -7,6 +7,7 @@ using Spectre.Console;
 using YamlDotNet.RepresentationModel;
 using Credentials = Octokit.Credentials;
 
+// TODO: implement extras like this
 // var root = new RootCommand
 // {
 //     new Option<string>("--token", "The github token to use"),
@@ -78,21 +79,6 @@ catch
     return;
 }
 
-// Next we need to check whether the current branch is a PR branch.
-// We can determine this by seeing if the branch name appears in .pr-train.yml which has structure:
-// prs:
-//   base: master
-//   # config
-// trains:
-//   some train name:
-//     - branch1
-//     - branch2:
-//         dead: true
-//     - branch3
-//   some other train name:
-//     - cool-changes
-//     - more-cool-changes
-
 var trains = (YamlMappingNode)yaml.Documents[0].RootNode["trains"];
 
 var allBranches = trains.Children.Values.SelectMany(x => ((YamlSequenceNode)x).Children)
@@ -152,26 +138,6 @@ AnsiConsole.Status()
         }
     });
 
-// Synchronous
-// AnsiConsole.Status()
-//     .Start("Thinking...", ctx =>
-//     {
-//         ctx.Spinner(Spinner.Known.Aesthetic);
-//         ctx.SpinnerStyle(Style.Parse("green"));
-//
-//         ctx.Status("Building graft train (local branches)");
-//         Thread.Sleep(3000);
-//
-//         ctx.Status("Building graft train (remote branches)");
-//         Thread.Sleep(3000);
-//
-//         ctx.Status("Building graft train (remote PRs)");
-//
-//         // PrintDemoTree();
-//         Thread.Sleep(3000);
-//     });
-
-
 // TODO: exit if the repo is dirty / uncommitted changes
 // Get base branch status (as above)
 //   fetch origin/base DONE
@@ -218,11 +184,12 @@ if (userName == null || userEmail == null)
 
 if (repo.RetrieveStatus().IsDirty)
 {
-    AnsiConsole.MarkupLine("[red]Error:[/] Your current repository is in a dirty state, please fix this before continuning.");
+    AnsiConsole.MarkupLine(
+        "[red]Error:[/] Your current repository is in a dirty state, please fix this before continuning.");
     return;
 }
 
-// TODO: doing this everywhere will get very slow eventually, fix
+// TODO: doing this First() lookup everywhere will get very slow eventually, fix
 if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
 {
     // Merge origin/base into local/base
@@ -237,9 +204,9 @@ if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
     if (mergeResult.Status == MergeStatus.Conflicts)
     {
         AnsiConsole.MarkupLine(
-            $"[yellow]Warning:[/] Encountered conflicts updating {baseBranch}, please fix. Graft will resume when fixed.");
-        // TODO: implement waiting.
-        return;
+            $"[yellow]Warning:[/] Encountered conflicts updating {baseBranch}, please resolve them in a seperate terminal before continuing.");
+        Console.WriteLine();
+        if (!Prompt.Confirm("Continue?")) return;
     }
 
     AnsiConsole.MarkupLine($"[green]Merged:[/] {baseBranchRepoUpstream.FriendlyName} into {baseBranch}");
@@ -249,16 +216,29 @@ else
     AnsiConsole.MarkupLine($"[gray]{baseBranch} is already up-to-date.[/]");
 }
 
-//for (var i = 0; i < branches.Count; ++i)
-//{
-//    var branch = branches[i];
-//    if (branch.Name == baseBranch) return;
-//    if (branch.IsMerged) AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
-//    if (branch.BehindOriginBy > 0)
-//    {
-//        var branchRepo = repo.Branches[branch.Name];
-//    }
-//}
+for (var i = 0; i < branches.Count; ++i)
+{
+    var branch = branches[i];
+    if (branch.Name == baseBranch) return;
+    if (branch.IsMerged) AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
+    if (branch.BehindOriginBy > 0)
+    {
+        var branchRepo = repo.Branches[branch.Name];
+        var branchRepoUpstream = branchRepo.TrackedBranch;
+        Commands.Checkout(repo, branchRepo);
+        var mergeResult = repo.Merge(branchRepoUpstream.Tip,
+            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+        if (mergeResult.Status == MergeStatus.Conflicts)
+        {
+            AnsiConsole.MarkupLine(
+                $"[yellow]Warning:[/] Encountered conflicts updating {branch.Name}, please resolve them in a seperate terminal before continuing.");
+            Console.WriteLine();
+            if (!Prompt.Confirm("Continue?")) return;
+        }
+    }
+}
+
+AnsiConsole.MarkupLine("[green]All train branches are up-to-date[/]");
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

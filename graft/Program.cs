@@ -209,6 +209,7 @@ if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
         if (!Prompt.Confirm("Continue?")) return;
     }
 
+    CompareToRemote(baseBranch);
     AnsiConsole.MarkupLine($"[green]Merged:[/] {baseBranchRepoUpstream.FriendlyName} into {baseBranch}");
 }
 else
@@ -242,6 +243,8 @@ for (var i = 0; i < branches.Count; ++i)
             Console.WriteLine();
             if (!Prompt.Confirm("Continue?")) return;
         }
+
+        CompareToRemote(baseBranch);
     }
 }
 
@@ -253,16 +256,20 @@ for (var i = 0; i < branches.Count; ++i)
 {
     var branch = branches[i];
 
-    if (branch.Name == baseBranch) continue;
     if (branch.IsMerged) continue;
+    if (branch.Name == baseBranch) continue;
+    if (i + 1 < branches.Count && branches[i + 1].Name == baseBranch) continue;
+
+    var nextBranch = branches.SkipWhile(x => x.Name != branch.Name)
+        .SkipWhile(x => x.IsMerged)
+        .Skip(1)
+        .FirstOrDefault();
+
+    // We need to recompare at each iteration because we are modifying.
+    CompareBranches(branch.Name, nextBranch.Name);
 
     if (branch.AheadOfNextBranchBy > 0)
     {
-        var nextBranch = branches.SkipWhile(x => x.Name != branch.Name)
-            .SkipWhile(x => x.IsMerged)
-            .Skip(1)
-            .FirstOrDefault();
-
         var branchRepo = repo.Branches[branch.Name];
         var nextBranchRepo = repo.Branches[nextBranch.Name];
 
@@ -331,7 +338,7 @@ string GetRemoteBranchStatus(string branchName)
 {
     try
     {
-        var (_, behind) = GetAheadBehind(branchName);
+        var (_, behind) = CompareToRemote(branchName);
 
         if (behind == -1)
         {
@@ -353,7 +360,7 @@ string GetBaseBranchStatus()
 {
     try
     {
-        var (ahead, behind) = GetAheadBehind(baseBranch);
+        var (ahead, behind) = CompareToRemote(baseBranch);
 
         if (ahead > 0)
         {
@@ -444,7 +451,7 @@ void FetchBranches()
     return (-1, -1);
 }
 
-(int? ahead, int? behind) GetAheadBehind(string branchName)
+(int? ahead, int? behind) CompareToRemote(string branchName)
 {
     var branch = repo.Branches[branchName];
     if (branch == null)

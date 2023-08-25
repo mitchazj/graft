@@ -245,7 +245,7 @@ for (var i = 0; i < branches.Count; ++i)
     }
 }
 
-AnsiConsole.MarkupLine("[green]All train branches are up-to-date[/]");
+AnsiConsole.MarkupLine("[gray]train branches are up-to-date[/]");
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

@@ -127,10 +127,29 @@ branches.Add(new GraftBranch(baseBranch));
 // Now we construct the train on the console
 AnsiConsole.MarkupLine($"[gray]{trainName}[/]");
 AnsiConsole.Status()
-    .Start($"Fetching origin/{baseBranch}...", ctx =>
+    .Start($"Building graft train...", ctx =>
     {
         FetchBranches();
+        Console.WriteLine();
         AnsiConsole.MarkupLine($"- [blue]{baseBranch}[/] [gray]({GetBaseBranchStatus()})[/]");
+
+        // Now we construct the train on the console
+        foreach (var branch in branches)
+        {
+            if (branch.Name == baseBranch) continue;
+
+            if (branch.IsMerged)
+            {
+                AnsiConsole.MarkupLine($"- [gray]{branch.Name}[/] [gray](merged)[/]");
+                continue;
+            }
+
+            var name = branch.Name == currentBranch
+                ? $"[green]{branch.Name}[/]"
+                : branch.Name;
+
+            AnsiConsole.MarkupLine($"- {name} {GetBranchStatus(branch.Name)} {GetRemoteBranchStatus(branch.Name)}");
+        }
     });
 
 // Synchronous
@@ -152,23 +171,6 @@ AnsiConsole.Status()
 //         Thread.Sleep(3000);
 //     });
 
-// Now we construct the train on the console
-foreach (var branch in branches)
-{
-    if (branch.Name == baseBranch) continue;
-
-    if (branch.IsMerged)
-    {
-        AnsiConsole.MarkupLine($"- [gray]{branch.Name}[/] [gray](merged)[/]");
-        continue;
-    }
-
-    var name = branch.Name == currentBranch
-        ? $"[green]{branch.Name}[/]"
-        : branch.Name;
-
-    AnsiConsole.MarkupLine($"- {name} {GetBranchStatus(branch.Name)} {GetRemoteBranchStatus(branch.Name)}");
-}
 
 // TODO: exit if the repo is dirty / uncommitted changes
 // Get base branch status (as above)
@@ -188,7 +190,7 @@ foreach (var branch in branches)
 //         - if there is, fail and notify the user to resolve manually DONE
 //     - check how many commits are on this branch that are not on the next branch DONE
 //
-// merge origin/base into local/base (should fast-forward)
+// merge origin/base into local/base (should fast-forward) DONE
 // for each branch (skipping those marked as merged)
 //   merge origin/branch into local/branch (should fast-forward, but if not, pause for conflict resolution)
 // merge local/base into local/branch1 (or next, if branch1 is merged)
@@ -201,10 +203,62 @@ foreach (var branch in branches)
 //   else
 //     create a PR for the branch with updated table
 
-// Merge origin/base into local/base
-var baseBranchTip = repo.Branches[baseBranch].Tip;
-var baseBranchTrackingBranch = repo.Branches[baseBranch].TrackedBranch;
+Console.WriteLine();
 
+var userName = repo.Config.Get<string>("user.name");
+var userEmail = repo.Config.Get<string>("user.email");
+if (userName == null || userEmail == null)
+{
+    AnsiConsole.MarkupLine("[red]Error:[/] Your user.name and user.email are not set in git, please fix manually.");
+    return;
+}
+
+// TODO: figure out how to do failsafe recovery? Eg, if it exits in the middle of a graft, how to safely resume?
+// what things would we need to consider?
+
+if (repo.RetrieveStatus().IsDirty)
+{
+    AnsiConsole.MarkupLine("[red}Error:[/] Your current repository is in a dirty state, please fix this before continuning.");
+    return;
+}
+
+// TODO: doing this everywhere will get very slow eventually, fix
+if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
+{
+    // Merge origin/base into local/base
+    var baseBranchRepo = repo.Branches[baseBranch];
+    var baseBranchRepoUpstream = repo.Branches[baseBranch].TrackedBranch;
+
+    Commands.Checkout(repo, baseBranchRepo);
+
+    var mergeResult = repo.Merge(baseBranchRepoUpstream.Tip,
+        new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+
+    if (mergeResult.Status == MergeStatus.Conflicts)
+    {
+        AnsiConsole.MarkupLine(
+            $"[yellow]Warning:[/] Encountered conflicts updating {baseBranch}, please fix. Graft will resume when fixed.");
+        // TODO: implement waiting.
+        return;
+    }
+
+    AnsiConsole.MarkupLine($"[green]Merged:[/] {baseBranchRepoUpstream.FriendlyName} into {baseBranch}");
+}
+else
+{
+    AnsiConsole.MarkupLine($"[gray]{baseBranch} is already up-to-date.[/]");
+}
+
+for (var i = 0; i < branches.Count; ++i)
+{
+    var branch = branches[i];
+    if (branch.Name == baseBranch) return;
+    if (branch.IsMerged) AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
+    if (branch.BehindOriginBy > 0)
+    {
+        var branchRepo = repo.Branches[branch.Name];
+    }
+}
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

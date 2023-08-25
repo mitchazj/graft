@@ -219,8 +219,15 @@ else
 for (var i = 0; i < branches.Count; ++i)
 {
     var branch = branches[i];
-    if (branch.Name == baseBranch) return;
-    if (branch.IsMerged) AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
+
+    if (branch.Name == baseBranch) continue;
+
+    if (branch.IsMerged)
+    {
+        AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
+        continue;
+    }
+
     if (branch.BehindOriginBy > 0)
     {
         var branchRepo = repo.Branches[branch.Name];

@@ -276,8 +276,13 @@ for (var i = 0; i < branches.Count; ++i)
             Console.WriteLine();
             if (!Prompt.Confirm("Continue?")) return;
         }
+
+        AnsiConsole.MarkupLine($"[green]Updated {nextBranch.Name}.[/]");
     }
 }
+
+Console.WriteLine();
+Console.WriteLine("All done!");
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

@@ -224,7 +224,7 @@ for (var i = 0; i < branches.Count; ++i)
 
     if (branch.IsMerged)
     {
-        AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
+        // AnsiConsole.MarkupLine($"[gray]Skipped: {branch.Name} because it is merged");
         continue;
     }
 
@@ -246,6 +246,38 @@ for (var i = 0; i < branches.Count; ++i)
 }
 
 AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
+
+for (var i = 0; i < branches.Count; ++i)
+{
+    var branch = branches[i];
+
+    if (branch.Name == baseBranch) continue;
+    if (branch.IsMerged) continue;
+
+    if (branch.AheadOfNextBranchBy > 0)
+    {
+        var nextBranch = branches.SkipWhile(x => x.Name != branch.Name)
+            .SkipWhile(x => x.IsMerged)
+            .Skip(1)
+            .FirstOrDefault();
+
+        var branchRepo = repo.Branches[branch.Name];
+        var nextBranchRepo = repo.Branches[nextBranch.Name];
+
+        Commands.Checkout(repo, nextBranchRepo);
+
+        var mergeResult = repo.Merge(branchRepo.Tip,
+            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+
+        if (mergeResult.Status == MergeStatus.Conflicts)
+        {
+            AnsiConsole.MarkupLine(
+                $"[yellow]Warning:[/] Encountered conflicts grafting {branch.Name}, please resolve them in a seperate terminal before continuing.");
+            Console.WriteLine();
+            if (!Prompt.Confirm("Continue?")) return;
+        }
+    }
+}
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

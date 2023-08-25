@@ -24,6 +24,8 @@ public class GraftBranch
         Name = name;
         IsMerged = isMerged;
         PullRequests = new List<PullRequest>();
+        AheadOfNextBranchBy = 0;
+        BehindNextBranchBy = 0;
     }
 
     public void StoreMergeStatus(bool isMerged, string yamlPath, string baseBranchName)

@@ -218,7 +218,7 @@ if (userName == null || userEmail == null)
 
 if (repo.RetrieveStatus().IsDirty)
 {
-    AnsiConsole.MarkupLine("[red}Error:[/] Your current repository is in a dirty state, please fix this before continuning.[/]");
+    AnsiConsole.MarkupLine("[red]Error:[/] Your current repository is in a dirty state, please fix this before continuning.");
     return;
 }
 

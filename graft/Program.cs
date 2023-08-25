@@ -252,8 +252,11 @@ AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
 Console.WriteLine();
 AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
+// TODO: graft master into #1 that isn't merged
+
 for (var i = 0; i < branches.Count; ++i)
 {
+    start:
     var branch = branches[i];
 
     if (branch.IsMerged) continue;
@@ -273,20 +276,35 @@ for (var i = 0; i < branches.Count; ++i)
         var branchRepo = repo.Branches[branch.Name];
         var nextBranchRepo = repo.Branches[nextBranch.Name];
 
-        Commands.Checkout(repo, nextBranchRepo);
+        try {
+            Commands.Checkout(repo, nextBranchRepo);
 
-        var mergeResult = repo.Merge(branchRepo.Tip,
-            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+            var mergeResult = repo.Merge(branchRepo.Tip,
+                new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
 
-        if (mergeResult.Status == MergeStatus.Conflicts)
-        {
-            AnsiConsole.MarkupLine(
-                $"[yellow]Warning:[/] Encountered conflicts grafting {branch.Name}, please resolve them in a seperate terminal before continuing.");
-            Console.WriteLine();
-            if (!Prompt.Confirm("Continue?")) return;
+            if (mergeResult.Status == MergeStatus.Conflicts)
+            {
+                AnsiConsole.MarkupLine(
+                    $"[yellow]Warning:[/] Encountered conflicts grafting {branch.Name}, please resolve them in a seperate terminal before continuing.");
+                Console.WriteLine();
+                if (!Prompt.Confirm("Continue?")) return;
+            }
+
+            AnsiConsole.MarkupLine($"[green]Grafted {branch.Name} unto {nextBranch.Name}.[/]");
+            Thread.Sleep(100);
         }
+        catch (LibGit2Sharp.LockedFileException)
+        {
+            AnsiConsole.MarkupLine($"[yellow]Warning: Encountered locked file exception while grafting {branch.Name} unto {nextBranch.Name}. Retrying...[/]");
 
-        AnsiConsole.MarkupLine($"[green]Grafted {branch.Name} unto {nextBranch.Name}.[/]");
+            // Wait for safety
+            Thread.Sleep(1000);
+
+            // Undo any weirdness that might have occurred
+            repo.Reset(ResetMode.Hard, repo.Head.Tip);
+
+            goto start;
+        }
     }
 }
 

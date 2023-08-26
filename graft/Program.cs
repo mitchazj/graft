@@ -338,12 +338,13 @@ for (var i = 0; i < branches.Count; ++i)
     }
 
     // Now we need to recompare to see if we need to push changes upstream
+    int? ahead = 0;
     if (nextBranch.HasOrigin)
     {
-        CompareToRemote(nextBranch.Name);
+        (ahead, _) = CompareToRemote(nextBranch.Name);
     }
 
-    if (nextBranch.AheadOfOriginBy > 0)
+    if (ahead != null && ahead > 0)
     {
         if (repo.Head.FriendlyName != nextBranch.Name)
         {
@@ -361,7 +362,6 @@ for (var i = 0; i < branches.Count; ++i)
 
 Console.WriteLine();
 Console.WriteLine("All done!");
-
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

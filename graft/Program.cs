@@ -288,11 +288,12 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
     if (repo.Head.FriendlyName != firstBranchNotMerged.Name)
     {
         Commands.Checkout(repo, repo.Branches[firstBranchNotMerged.Name]);
-        Thread.Sleep(100);
-        PushCurrentBranch();
-        AnsiConsole.MarkupLine(
-            $"[gray]Pushed {firstBranchNotMerged.Name} to {repo.Branches[firstBranchNotMerged.Name].TrackedBranch.FriendlyName}[/]");
     }
+
+    Thread.Sleep(100);
+    PushCurrentBranch();
+    AnsiConsole.MarkupLine(
+        $"[gray]Pushed {firstBranchNotMerged.Name} to {repo.Branches[firstBranchNotMerged.Name].TrackedBranch.FriendlyName}[/]");
 
     Thread.Sleep(100);
 }
@@ -320,6 +321,14 @@ for (var i = 0; i < branches.Count; ++i)
         if (!result)
         {
             goto start;
+        }
+    }
+
+    if (nextBranch.AheadOfOriginBy > 0)
+    {
+        if (repo.Head.FriendlyName != nextBranch.Name)
+        {
+            Commands.Checkout(repo, repo.Branches[nextBranch.Name]);
         }
 
         Thread.Sleep(100);

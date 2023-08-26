@@ -338,13 +338,14 @@ for (var i = 0; i < branches.Count; ++i)
     }
 
     // Now we need to recompare to see if we need to push changes upstream
-    int? ahead = 0;
-    if (nextBranch.HasOrigin)
-    {
-        (ahead, _) = CompareToRemote(nextBranch.Name);
-    }
+//    int? ahead = 0;
+//    if (nextBranch.HasOrigin)
+//    {
+//        (ahead, _) = CompareToRemote(nextBranch.Name);
+//    }
 
-    if (ahead != null && ahead > 0)
+//    if (ahead != null && ahead > 0)
+    if (nextBranch.AheadOfOriginBy > 0)
     {
         if (repo.Head.FriendlyName != nextBranch.Name)
         {

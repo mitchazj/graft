@@ -338,7 +338,10 @@ for (var i = 0; i < branches.Count; ++i)
     }
 
     // Now we need to recompare to see if we need to push changes upstream
-    CompareToRemote(nextBranch.Name);
+    if (nextBranch.HasOrigin)
+    {
+        CompareToRemote(nextBranch.Name);
+    }
 
     if (nextBranch.AheadOfOriginBy > 0)
     {
@@ -358,7 +361,6 @@ for (var i = 0; i < branches.Count; ++i)
 
 Console.WriteLine();
 Console.WriteLine("All done!");
-
 
 
 // Console.WriteLine();

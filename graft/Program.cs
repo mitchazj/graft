@@ -455,9 +455,10 @@ string GetRemoteBranchStatus(string branchName)
             Environment.Exit(1);
         }
 
-        return behind == 0 && ahead == 0
-            ? $"[gray](origin: {behind} un-pulled commits, {ahead} to push)[/]"
-            : $"[blue](origin: {behind} un-pulled commits, {ahead} to push)[/]";
+        var behindColor = behind == 0 ? "gray" : "blue";
+        var aheadColor = ahead == 0 ? "gray" : "blue";
+        return
+            $"[gray]([/][{behindColor}]origin: {behind} un-pulled commits[/][gray],[/] [{aheadColor}]{ahead} to push[/][gray])[/]";
     }
     catch (KnownException)
     {

@@ -256,8 +256,8 @@ AnsiConsole.MarkupLine("[gray]grafting...[/]");
 GraftBranch firstBranchNotMerged;
 try
 {
-    firstBranchNotMerged = branches.SkipWhile(x => x.Name != baseBranch)
-        .SkipWhile(x => x.IsMerged)
+    firstBranchNotMerged = branches.SkipWhile(x => x.IsMerged)
+        .SkipWhile(x => x.Name == baseBranch)
         .Skip(1)
         .FirstOrDefault();
 

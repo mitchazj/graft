@@ -161,6 +161,8 @@ AnsiConsole.Status()
 //   merge origin/branch into local/branch (should fast-forward, but if not, pause for conflict resolution)
 // merge local/base into local/branch1 (or next, if branch1 is merged)
 // then merge local/branch1 into local/branch2, local/branch2 into local/branch3, etc (skipping merged branches)
+
+// TODO remaining:
 // for each branch (skipping those marked as merged)
 //   push local/branch to origin/branch, creating origin/branch if it does not exist
 // for each branch
@@ -308,6 +310,7 @@ for (var i = 0; i < branches.Count; ++i)
 
 Console.WriteLine();
 Console.WriteLine("All done!");
+
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]

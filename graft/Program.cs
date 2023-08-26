@@ -293,6 +293,7 @@ if (shouldUpdateOnMaster)
     AnsiConsole.MarkupLine("[gray]Updated on master[/]");
 }
 
+// If we grafted baseBranch in (or if the first branch already had changes) push those changes to origin
 if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
 {
     if (repo.Head.FriendlyName != firstBranchNotMerged.Name)
@@ -308,6 +309,8 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
     Thread.Sleep(100);
 }
 
+// Now that we have handled the base case (optionally grafting baseBranch into firstBranchNotMergeed)
+// we continue the work.
 for (var i = 0; i < branches.Count; ++i)
 {
     start:

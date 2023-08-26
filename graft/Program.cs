@@ -258,7 +258,6 @@ try
 {
     firstBranchNotMerged = branches.SkipWhile(x => x.IsMerged)
         .SkipWhile(x => x.Name == baseBranch)
-        .Skip(1)
         .FirstOrDefault();
 
     if (firstBranchNotMerged == null) throw new Exception();

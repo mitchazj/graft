@@ -447,7 +447,7 @@ string GetRemoteBranchStatus(string branchName)
 {
     try
     {
-        var (_, behind) = CompareToRemote(branchName);
+        var (ahead, behind) = CompareToRemote(branchName);
 
         if (behind == -1)
         {
@@ -455,9 +455,9 @@ string GetRemoteBranchStatus(string branchName)
             Environment.Exit(1);
         }
 
-        return behind == 0
-            ? $"[gray](origin: {behind} un-pulled commits)[/]"
-            : $"[blue](origin: {behind} un-pulled commits)[/]";
+        return behind == 0 && ahead == 0
+            ? $"[gray](origin: {behind} un-pulled commits, {ahead} to push)[/]"
+            : $"[blue](origin: {behind} un-pulled commits, {ahead} to push)[/]";
     }
     catch (KnownException)
     {

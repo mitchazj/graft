@@ -252,7 +252,33 @@ AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
 Console.WriteLine();
 AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
-// TODO: graft master into #1 that isn't merged
+// Graft master into the first unmerged branch in train
+GraftBranch firstBranchNotMerged;
+try
+{
+    firstBranchNotMerged = branches.SkipWhile(x => x.Name != baseBranch)
+        .SkipWhile(x => x.IsMerged)
+        .Skip(1)
+        .FirstOrDefault();
+
+    if (firstBranchNotMerged == null) throw new Exception();
+}
+catch
+{
+    AnsiConsole.MarkupLine("[red]Couldn't locate an unmerged branch in train. Exiting.[/]");
+    return;
+}
+
+if (Prompt.Confirm("Update this train on master?"))
+{
+    bool result = Graft(baseBranch, firstBranchNotMerged.Name);
+    if (!result)
+    {
+        AnsiConsole.MarkupLine("[red]Failed to update on master automatically[/]");
+        return; // TODO: is this correct/desirable?
+    }
+    AnsiConsole.MarkupLine("[gray]Updated on master[/]");
+}
 
 for (var i = 0; i < branches.Count; ++i)
 {
@@ -273,36 +299,9 @@ for (var i = 0; i < branches.Count; ++i)
 
     if (branch.AheadOfNextBranchBy > 0)
     {
-        var branchRepo = repo.Branches[branch.Name];
-        var nextBranchRepo = repo.Branches[nextBranch.Name];
-
-        try {
-            Commands.Checkout(repo, nextBranchRepo);
-
-            var mergeResult = repo.Merge(branchRepo.Tip,
-                new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
-
-            if (mergeResult.Status == MergeStatus.Conflicts)
-            {
-                AnsiConsole.MarkupLine(
-                    $"[yellow]Warning:[/] Encountered conflicts grafting {branch.Name}, please resolve them in a seperate terminal before continuing.");
-                Console.WriteLine();
-                if (!Prompt.Confirm("Continue?")) return;
-            }
-
-            AnsiConsole.MarkupLine($"[green]Grafted {branch.Name} unto {nextBranch.Name}.[/]");
-            Thread.Sleep(100);
-        }
-        catch (LibGit2Sharp.LockedFileException)
+        bool result = Graft(branch.Name, nextBranch.Name);
+        if (!result)
         {
-            AnsiConsole.MarkupLine($"[yellow]Warning: Encountered locked file exception while grafting {branch.Name} unto {nextBranch.Name}. Retrying...[/]");
-
-            // Wait for safety
-            Thread.Sleep(1000);
-
-            // Undo any weirdness that might have occurred
-            repo.Reset(ResetMode.Hard, repo.Head.Tip);
-
             goto start;
         }
     }
@@ -324,6 +323,52 @@ Console.WriteLine("All done!");
 // Mark the "mitchazj-branch-three" branch as merged
 // var cb = branches.First(x => x.Name == "mitchazj-branch-three");
 // cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
+
+bool Graft(string branchName, string nextBranchName)
+{
+    var branchRepo = repo.Branches[branchName];
+    var nextBranchRepo = repo.Branches[nextBranchName];
+
+    try
+    {
+        Commands.Checkout(repo, nextBranchRepo);
+
+        var mergeResult = repo.Merge(branchRepo.Tip,
+            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+
+        if (mergeResult.Status == MergeStatus.Conflicts)
+        {
+            AnsiConsole.MarkupLine(
+                $"[yellow]Warning:[/] Encountered conflicts grafting {branchName}, please resolve them in a seperate terminal before continuing.");
+            Console.WriteLine();
+            if (!Prompt.Confirm("Continue?"))
+            {
+                Environment.Exit(1);
+
+                // return true even in failure case here so that we exit faster
+                return true;
+            }
+        }
+
+        AnsiConsole.MarkupLine($"[green]Grafted {branchName} unto {nextBranchName}.[/]");
+        Thread.Sleep(100);
+    }
+    catch (LibGit2Sharp.LockedFileException)
+    {
+        AnsiConsole.MarkupLine(
+            $"[yellow]Warning: Encountered locked file exception while grafting {branchName} unto {nextBranchName}. Retrying...[/]");
+
+        // Wait for safety
+        Thread.Sleep(1000);
+
+        // Undo any weirdness that might have occurred
+        repo.Reset(ResetMode.Hard, repo.Head.Tip);
+
+        return false;
+    }
+
+    return true;
+}
 
 string GetBranchStatus(string branchName)
 {

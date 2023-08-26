@@ -259,6 +259,8 @@ AnsiConsole.Status()
         // TODO
     });
 
+// TODO also quick reminder to when I come back to this: swap the branch back to the initial branch
+
 Console.WriteLine();
 AnsiConsole.MarkupLine("[gray]grafting...[/]");
 

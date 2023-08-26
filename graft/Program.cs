@@ -270,7 +270,8 @@ catch
     return;
 }
 
-if (Prompt.Confirm("Update this train on master?"))
+var shouldUpdateOnMaster = Prompt.Confirm("Update this train on master?");
+if (shouldUpdateOnMaster)
 {
     bool result = Graft(baseBranch, firstBranchNotMerged.Name);
     if (!result)
@@ -278,7 +279,22 @@ if (Prompt.Confirm("Update this train on master?"))
         AnsiConsole.MarkupLine("[red]Failed to update on master automatically[/]");
         return; // TODO: is this correct/desirable?
     }
+
     AnsiConsole.MarkupLine("[gray]Updated on master[/]");
+}
+
+if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
+{
+    if (repo.Head.FriendlyName != firstBranchNotMerged.Name)
+    {
+        Commands.Checkout(repo, repo.Branches[firstBranchNotMerged.Name]);
+        Thread.Sleep(100);
+        PushCurrentBranch();
+        AnsiConsole.MarkupLine(
+            $"[gray]Pushed {firstBranchNotMerged.Name} to {repo.Branches[firstBranchNotMerged.Name].TrackedBranch.FriendlyName}[/]");
+    }
+
+    Thread.Sleep(100);
 }
 
 for (var i = 0; i < branches.Count; ++i)
@@ -305,7 +321,14 @@ for (var i = 0; i < branches.Count; ++i)
         {
             goto start;
         }
+
+        Thread.Sleep(100);
+        PushCurrentBranch();
+        AnsiConsole.MarkupLine(
+            $"[gray]Pushed {nextBranch.Name} to {repo.Branches[nextBranch.Name].TrackedBranch.FriendlyName}[/]");
     }
+
+    Thread.Sleep(100);
 }
 
 Console.WriteLine();
@@ -449,6 +472,36 @@ string GetBaseBranchStatus()
         Environment.Exit(1);
         return "";
     }
+}
+
+void PushCurrentBranch()
+{
+    // Use a call to the git cli instead of libgit2sharp, since libgit2sharp
+    // doesn't play nicely with SSH credentials.
+
+    // This approaches lets us use the user's system git + ssh-agent
+    // todo: does this surface roo / okta 2fa requests correctly?
+
+    var psi = new ProcessStartInfo
+    {
+        FileName = "git",
+        Arguments = "push",
+        WorkingDirectory = rootPath,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        CreateNoWindow = true,
+        UseShellExecute = false
+    };
+    var process = Process.Start(psi);
+
+    process.WaitForExit();
+
+    if (process.ExitCode == 0) return;
+
+    AnsiConsole.MarkupLine("[red]Error:[/] Failed to push to origin");
+    AnsiConsole.WriteLine("");
+    AnsiConsole.WriteLine(process.StandardError.ReadToEnd());
+    Environment.Exit(1);
 }
 
 void FetchBranches()

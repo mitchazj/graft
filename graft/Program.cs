@@ -252,6 +252,14 @@ for (var i = 0; i < branches.Count; ++i)
 
 AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
 Console.WriteLine();
+
+AnsiConsole.Status()
+    .Start("Checking PRs...", ctx =>
+    {
+        // TODO
+    });
+
+Console.WriteLine();
 AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
 // Graft master into the first unmerged branch in train
@@ -342,6 +350,7 @@ for (var i = 0; i < branches.Count; ++i)
 
 Console.WriteLine();
 Console.WriteLine("All done!");
+
 
 
 // Console.WriteLine();

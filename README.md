@@ -58,3 +58,11 @@ if you encounter any issues using this tool, please raise an issue describing;
 - the exact situation that went wrong
 - what you expected to happen, that didn't
 - the steps to reproduce it.
+
+### TODO
+- [ ] Automated Tests
+- [ ] Code Cleanliness refactor
+- [ ] New Features:
+  - [ ] cli to generate new train branches
+  - [ ] cli to generate PR descriptions, using templates
+  - [ ] raycast extension

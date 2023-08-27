@@ -270,6 +270,10 @@ catch
         var ownerAndRepo = urlParts[1].Split('/');
         owner = ownerAndRepo[0];
         repoName = ownerAndRepo[1];
+        Console.WriteLine("----");
+        Console.WriteLine(owner);
+        Console.WriteLine(repoName);
+        Console.WriteLine("----");
     }
     catch
     {

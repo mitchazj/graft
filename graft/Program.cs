@@ -256,10 +256,22 @@ Console.WriteLine();
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
     {
-        // TODO
+        // TODO need to check any existing PRs to see if they merged
     });
 
-// TODO also quick reminder to when I come back to this: swap the branch back to the initial branch
+// Console.WriteLine();
+// var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
+// {
+//     "Mark this branch as merged",
+//     "Create a new PR for this branch",
+//     "Remove this branch from the train entirely"
+// });
+// Console.WriteLine($"Hello, {city}!");
+
+
+// Mark the "mitchazj-branch-three" branch as merged
+// var cb = branches.First(x => x.Name == "mitchazj-branch-three");
+// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
 
 AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
@@ -355,26 +367,14 @@ for (var i = 0; i < branches.Count; ++i)
 
 Console.WriteLine();
 
-// Console.WriteLine();
-// var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
-// {
-//     "Mark this branch as merged",
-//     "Create a new PR for this branch",
-//     "Remove this branch from the train entirely"
-// });
-// Console.WriteLine($"Hello, {city}!");
-
-
-// Mark the "mitchazj-branch-three" branch as merged
-// var cb = branches.First(x => x.Name == "mitchazj-branch-three");
-// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
-
 if (repo.Head.FriendlyName != currentBranch)
 {
     Console.WriteLine($"Taking you back to {currentBranch}...");
     Commands.Checkout(repo, currentBranch);
 }
 Console.WriteLine("All done!");
+
+///////////////////////////////////////////////////////////////////////////////
 
 bool Graft(string branchName, string nextBranchName)
 {

@@ -253,10 +253,37 @@ for (var i = 0; i < branches.Count; ++i)
 AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
 Console.WriteLine();
 
+var remote = repo.Network.Remotes["origin"];
+var url = new Uri(remote.Url);
+
+var owner = url.Segments[1].TrimEnd('/'); // Extract the owner/organization from the URL
+var repoName = url.Segments[2].TrimEnd('/'); // Extract the repository name from the URL
+
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
     {
         // TODO need to check any existing PRs to see if they merged
+
+        for (var i = 0; i < branches.Count; ++i)
+        {
+            var branch = branches[i];
+            if (branch.Name == baseBranch) continue;
+            if (branch.IsMerged) continue;
+
+            var searchForPRs = new PullRequestRequest()
+            {
+                Base = branch.Name,
+                State = ItemStateFilter.All
+            };
+
+            var pullRequestsTask = client.PullRequest.GetAllForRepository(owner, repoName, searchForPRs);
+            pullRequestsTask.Wait();
+            var pullRequests = pullRequestsTask.Result;
+
+            if (pullRequests.Count == 0) continue;
+
+            branch.PullRequests = pullRequests.ToList();
+        }
     });
 
 // Console.WriteLine();
@@ -366,12 +393,46 @@ for (var i = 0; i < branches.Count; ++i)
 }
 
 Console.WriteLine();
+AnsiConsole.Status()
+    .Start("Updating PR train...", ctx =>
+    {
+        var previousBranch = "";
+        for (var i = branches.Count - 2; i > 0; --i)
+        {
+            var branch = branches[i];
+
+            if (branch.Name == baseBranch) continue;
+            if (branch.IsMerged) continue;
+            if (previousBranch == "")
+            {
+                previousBranch = branch.Name;
+                continue;
+            }
+
+            // Find the first pr that is open (ie doesn't have a "closed at" date)
+            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
+
+            if (openPr != null)
+            {
+                // There's an open pr.
+                continue; // TODO: handle this case
+            }
+
+            var pullRequest = new NewPullRequest($"Merge {branch.Name} into {previousBranch}", branch.Name, previousBranch);
+            var createdPullRequest = await client.PullRequest.Create(owner, repoName, pullRequest);
+
+            // TODO: handle there being a PR but it's closed / merged.
+        }
+    });
+
+Console.WriteLine();
 
 if (repo.Head.FriendlyName != currentBranch)
 {
     Console.WriteLine($"Taking you back to {currentBranch}...");
     Commands.Checkout(repo, currentBranch);
 }
+
 Console.WriteLine("All done!");
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -628,6 +689,25 @@ void FetchBranches()
     branches.First(x => x.Name == branchName).BehindOriginBy = (int)behind;
 
     return (ahead, behind);
+}
+
+string GenerateTrainTable(GraftBranch branch, List<GraftBranch> branches)
+{
+    //
+    // <pr-train-toc>
+    // |     | PR      | Description                                                 |
+    // | --- | ------- | ----------------------------------------------------------- |
+    // | 👉  | #402375 | Add FE stubbed Fake Data for External Invoices - [PAY-3933] |
+    // |     | #403234 | Purhi - Stub External Purchase Description - [PAY-3913]     |
+    // |     | #403260 | Purhi - Add Storybook File for External                     |
+    // |     | #403383 | Purhi - Add Dute Date to External Description               |
+    // |     | #403407 | Purhi - Add Invoice Id to External Description              |
+    // </pr-train-toc>
+    //
+
+    string table = "<pr-train-toc>";
+
+//    var longestPrNumber = branches.
 }
 
 public class KnownException : Exception

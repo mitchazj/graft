@@ -709,6 +709,7 @@ string GenerateTrainTable(GraftBranch branch, List<GraftBranch> branches)
     string table = "<pr-train-toc>";
 
 //    var longestPrNumber = branches.
+    return table;
 }
 
 public class KnownException : Exception

@@ -261,7 +261,6 @@ AnsiConsole.Status()
 
 // TODO also quick reminder to when I come back to this: swap the branch back to the initial branch
 
-Console.WriteLine();
 AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
 // Graft master into the first unmerged branch in train
@@ -280,6 +279,7 @@ catch
     return;
 }
 
+Console.WriteLine();
 var shouldUpdateOnMaster = Prompt.Confirm("Update this train on master?");
 if (shouldUpdateOnMaster)
 {
@@ -354,7 +354,6 @@ for (var i = 0; i < branches.Count; ++i)
 }
 
 Console.WriteLine();
-Console.WriteLine("All done!");
 
 // Console.WriteLine();
 // var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
@@ -369,6 +368,13 @@ Console.WriteLine("All done!");
 // Mark the "mitchazj-branch-three" branch as merged
 // var cb = branches.First(x => x.Name == "mitchazj-branch-three");
 // cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
+
+if (repo.Head.FriendlyName != currentBranch)
+{
+    Console.WriteLine($"Taking you back to {currentBranch}...");
+    Commands.Checkout(repo, currentBranch);
+}
+Console.WriteLine("All done!");
 
 bool Graft(string branchName, string nextBranchName)
 {

@@ -254,10 +254,29 @@ AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
 Console.WriteLine();
 
 var remote = repo.Network.Remotes["origin"];
-var url = new Uri(remote.Url);
-
-var owner = url.Segments[1].TrimEnd('/'); // Extract the owner/organization from the URL
-var repoName = url.Segments[2].TrimEnd('/'); // Extract the repository name from the URL
+string owner;
+string repoName;
+try
+{
+    var url = new Uri(remote.Url);
+    owner = url.Segments[1].TrimEnd('/'); // Extract the owner/organization from the URL
+    repoName = url.Segments[2].TrimEnd('/'); // Extract the repository name from the URL
+}
+catch
+{
+    try
+    {
+        var urlParts = remote.Url.Split(':');
+        var ownerAndRepo = urlParts[1].Split('/');
+        owner = ownerAndRepo[0];
+        repoName = ownerAndRepo[1];
+    }
+    catch
+    {
+        AnsiConsole.MarkupLine("[red]Error:[/] failed to parse the git origin to determine the owner & repo name on origin.");
+        return;
+    }
+}
 
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
@@ -418,7 +437,8 @@ AnsiConsole.Status()
                 continue; // TODO: handle this case
             }
 
-            var pullRequest = new NewPullRequest($"Merge {branch.Name} into {previousBranch}", branch.Name, previousBranch);
+            var pullRequest =
+                new NewPullRequest($"Merge {branch.Name} into {previousBranch}", branch.Name, previousBranch);
             var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
             createdPullRequestTask.Wait();
 

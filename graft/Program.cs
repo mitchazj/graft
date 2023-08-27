@@ -419,7 +419,8 @@ AnsiConsole.Status()
             }
 
             var pullRequest = new NewPullRequest($"Merge {branch.Name} into {previousBranch}", branch.Name, previousBranch);
-            var createdPullRequest = await client.PullRequest.Create(owner, repoName, pullRequest);
+            var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+            createdPullRequestTask.Wait();
 
             // TODO: handle there being a PR but it's closed / merged.
         }

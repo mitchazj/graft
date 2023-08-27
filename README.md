@@ -62,6 +62,9 @@ if you encounter any issues using this tool, please raise an issue describing;
 ### TODO
 - [ ] Automated Tests
 - [ ] Code Cleanliness refactor
+- [ ] Publish on Homebrew
+- [ ] Publish on Winget / Chocolatey
+- [ ] Publish on Snap
 - [ ] New Features:
   - [ ] cli to generate new train branches
   - [ ] cli to generate PR descriptions, using templates

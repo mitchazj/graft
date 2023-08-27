@@ -299,6 +299,7 @@ AnsiConsole.Status()
                 State = ItemStateFilter.All
             };
 
+            // TODO: some form of bug seems to be happening here
             var pullRequestsTask = client.PullRequest.GetAllForRepository(owner, repoName, searchForPRs);
             pullRequestsTask.Wait();
             var pullRequests = pullRequestsTask.Result;

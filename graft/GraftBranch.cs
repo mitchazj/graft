@@ -6,8 +6,15 @@ public class GraftBranch
 {
     public string Name { get; set; }
 
-    public bool HasLocalChanges { get; set; }
-    public bool HasRemoteChanges { get; set; }
+    public bool HasOrigin { get; set; }
+    public bool HasDivergedFromOrigin { get; set; }
+    
+    public int AheadOfOriginBy { get; set; }
+    public int BehindOriginBy { get; set; }
+    
+    public int AheadOfNextBranchBy { get; set; }
+    public int BehindNextBranchBy { get; set; }
+    
     public bool IsMerged { get; private set; }
 
     public List<PullRequest> PullRequests { get; set; }
@@ -17,10 +24,14 @@ public class GraftBranch
         Name = name;
         IsMerged = isMerged;
         PullRequests = new List<PullRequest>();
+        AheadOfNextBranchBy = 0;
+        BehindNextBranchBy = 0;
     }
 
-    public void StoreMergeStatus(bool isMerged, string yamlPath)
+    public void StoreMergeStatus(bool isMerged, string yamlPath, string baseBranchName)
     {
+        if (Name == baseBranchName) return;
+        
         IsMerged = isMerged;
         
         // This is a hack implementation to get to MVP. I would be using YamlDotNet

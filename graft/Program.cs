@@ -314,7 +314,7 @@ foreach (var branch in branches)
         var createNewPr = "Create a new PR for this branch";
         // TODO: add "Remove this branch from the train entirely"
 
-        var choice = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to",
+        var choice = Prompt.Select($"The PR attached to {branch.Name} has been closed on origin. Would you like to",
             new[]
             {
                 markMerged,
@@ -428,7 +428,7 @@ AnsiConsole.Status()
     .Start("Updating PR train...", ctx =>
     {
         var previousBranch = "";
-        for (var i = branches.Count - 2; i > 0; --i)
+        for (var i = branches.Count - 2; i >= 0; --i)
         {
             var branch = branches[i];
 

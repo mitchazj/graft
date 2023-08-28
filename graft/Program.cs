@@ -53,7 +53,8 @@ if (!File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile
 }
 
 // Read the github token
-var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.graft/token");
+var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.graft/token")
+    .ReplaceLineEndings("");
 
 // Create the github client
 GitHubClient client;
@@ -253,16 +254,84 @@ for (var i = 0; i < branches.Count; ++i)
 AnsiConsole.MarkupLine("[gray]train branches are up-to-date.[/]");
 Console.WriteLine();
 
+var remote = repo.Network.Remotes["origin"];
+string owner;
+string repoName;
+try
+{
+    var url = new Uri(remote.Url);
+    owner = url.Segments[1].TrimEnd('/'); // Extract the owner/organization from the URL
+    repoName = url.Segments[2].TrimEnd('/'); // Extract the repository name from the URL
+}
+catch
+{
+    try
+    {
+        var urlParts = remote.Url.Split(':');
+        var ownerAndRepo = urlParts[1].Split('/');
+        owner = ownerAndRepo[0];
+        repoName = ownerAndRepo[1].Replace(".git", "");
+    }
+    catch
+    {
+        AnsiConsole.MarkupLine(
+            "[red]Error:[/] failed to parse the git origin to determine the owner & repo name on origin.");
+        return;
+    }
+}
+
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
     {
-        // TODO
+        // TODO need to check any existing PRs to see if they merged
+
+        for (var i = 0; i < branches.Count; ++i)
+        {
+            var branch = branches[i];
+            if (branch.Name == baseBranch) continue;
+            if (branch.IsMerged) continue;
+
+            var searchForPRs = new PullRequestRequest()
+            {
+                Base = branch.Name,
+                State = ItemStateFilter.All
+            };
+
+            var pullRequestsTask = client.PullRequest.GetAllForRepository(owner, repoName, searchForPRs);
+            var pullRequests = pullRequestsTask.Result;
+
+            if (pullRequests.Count == 0) continue;
+
+            branch.PullRequests = pullRequests.ToList();
+        }
     });
 
-// TODO also quick reminder to when I come back to this: swap the branch back to the initial branch
+foreach (var branch in branches)
+{
+    if (branch.PullRequests.Exists(x => x.ClosedAt != null))
+    {
+        var markMerged = "Mark this branch as merged";
+        var createNewPr = "Create a new PR for this branch";
+        // TODO: add "Remove this branch from the train entirely"
 
-Console.WriteLine();
-AnsiConsole.MarkupLine("[gray]grafting...[/]");
+        var choice = Prompt.Select($"The PR attached to {branch.Name} has been closed on origin. Would you like to",
+            new[]
+            {
+                markMerged,
+                createNewPr,
+            });
+
+        if (choice == markMerged)
+        {
+            branch.StoreMergeStatus(true, ymlFilePath, baseBranch);
+            AnsiConsole.MarkupLine($"[gray]Marked {branch.Name} as merged[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[gray]We'll create a new PR for {branch.Name}[/]");
+        }
+    }
+}
 
 // Graft master into the first unmerged branch in train
 GraftBranch firstBranchNotMerged;
@@ -293,6 +362,7 @@ if (shouldUpdateOnMaster)
     AnsiConsole.MarkupLine("[gray]Updated on master[/]");
 }
 
+// If we grafted baseBranch in (or if the first branch already had changes) push those changes to origin
 if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
 {
     if (repo.Head.FriendlyName != firstBranchNotMerged.Name)
@@ -308,6 +378,10 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
     Thread.Sleep(100);
 }
 
+AnsiConsole.MarkupLine("[gray]grafting...[/]");
+
+// Now that we have handled the base case (optionally grafting baseBranch into firstBranchNotMergeed)
+// we continue the work.
 for (var i = 0; i < branches.Count; ++i)
 {
     start:
@@ -334,7 +408,7 @@ for (var i = 0; i < branches.Count; ++i)
         }
     }
 
-    if (nextBranch.AheadOfOriginBy > 0)
+    if (nextBranch.AheadOfOriginBy > 0 || branch.AheadOfNextBranchBy > 0)
     {
         if (repo.Head.FriendlyName != nextBranch.Name)
         {
@@ -350,24 +424,67 @@ for (var i = 0; i < branches.Count; ++i)
     Thread.Sleep(100);
 }
 
+AnsiConsole.Status()
+    .Start("Updating PR train...", ctx =>
+    {
+        var previousBranch = "";
+        for (var i = branches.Count - 2; i >= 0; --i)
+        {
+            var branch = branches[i];
+
+            if (branch.Name == baseBranch) continue;
+            if (branch.IsMerged) continue;
+            if (previousBranch == "")
+            {
+                previousBranch = branch.Name;
+                continue;
+            }
+
+            // Find the first pr that is open (ie doesn't have a "closed at" date)
+            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
+
+            if (openPr != null)
+            {
+                // There's an open pr.
+                continue; // TODO: handle this case
+            }
+
+            var pullRequest =
+                new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
+            var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+            createdPullRequestTask.Wait();
+            AnsiConsole.MarkupLine($"[gray]Created a pr for {previousBranch}[/]");
+
+            previousBranch = branch.Name;
+        }
+
+        // Handle merging the first branch into baseBranch
+        if (previousBranch != "")
+        {
+            var branch = branches.First(x => x.Name == previousBranch);
+            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
+
+            if (openPr == null)
+            {
+                var pullRequest = new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name, baseBranch);
+                var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+                createdPullRequestTask.Wait();
+                AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}[/]");
+            }
+        }
+    });
+
 Console.WriteLine();
+
+if (repo.Head.FriendlyName != currentBranch)
+{
+    Console.WriteLine($"Taking you back to {currentBranch}...");
+    Commands.Checkout(repo, currentBranch);
+}
+
 Console.WriteLine("All done!");
 
-
-
-// Console.WriteLine();
-// var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
-// {
-//     "Mark this branch as merged",
-//     "Create a new PR for this branch",
-//     "Remove this branch from the train entirely"
-// });
-// Console.WriteLine($"Hello, {city}!");
-
-
-// Mark the "mitchazj-branch-three" branch as merged
-// var cb = branches.First(x => x.Name == "mitchazj-branch-three");
-// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
+///////////////////////////////////////////////////////////////////////////////
 
 bool Graft(string branchName, string nextBranchName)
 {
@@ -446,7 +563,7 @@ string GetRemoteBranchStatus(string branchName)
 {
     try
     {
-        var (_, behind) = CompareToRemote(branchName);
+        var (ahead, behind) = CompareToRemote(branchName);
 
         if (behind == -1)
         {
@@ -454,9 +571,10 @@ string GetRemoteBranchStatus(string branchName)
             Environment.Exit(1);
         }
 
-        return behind == 0
-            ? $"[gray](origin: {behind} un-pulled commits)[/]"
-            : $"[blue](origin: {behind} un-pulled commits)[/]";
+        var behindColor = behind == 0 ? "gray" : "blue";
+        var aheadColor = ahead == 0 ? "gray" : "blue";
+        return
+            $"[gray]([/][{behindColor}]origin: {behind} un-pulled commits[/][gray],[/] [{aheadColor}]{ahead} to push[/][gray])[/]";
     }
     catch (KnownException)
     {
@@ -620,6 +738,26 @@ void FetchBranches()
     branches.First(x => x.Name == branchName).BehindOriginBy = (int)behind;
 
     return (ahead, behind);
+}
+
+string GenerateTrainTable(GraftBranch branch, List<GraftBranch> branches)
+{
+    //
+    // <pr-train-toc>
+    // |     | PR      | Description                                                 |
+    // | --- | ------- | ----------------------------------------------------------- |
+    // | 👉  | #402375 | Add FE stubbed Fake Data for External Invoices - [PAY-3933] |
+    // |     | #403234 | Purhi - Stub External Purchase Description - [PAY-3913]     |
+    // |     | #403260 | Purhi - Add Storybook File for External                     |
+    // |     | #403383 | Purhi - Add Dute Date to External Description               |
+    // |     | #403407 | Purhi - Add Invoice Id to External Description              |
+    // </pr-train-toc>
+    //
+
+    string table = "<pr-train-toc>";
+
+    //    var longestPrNumber = branches.
+    return table;
 }
 
 public class KnownException : Exception

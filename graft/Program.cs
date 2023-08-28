@@ -335,7 +335,6 @@ catch
     return;
 }
 
-Console.WriteLine();
 var shouldUpdateOnMaster = Prompt.Confirm("Update this train on master?");
 if (shouldUpdateOnMaster)
 {
@@ -411,7 +410,6 @@ for (var i = 0; i < branches.Count; ++i)
     Thread.Sleep(100);
 }
 
-Console.WriteLine();
 AnsiConsole.Status()
     .Start("Updating PR train...", ctx =>
     {

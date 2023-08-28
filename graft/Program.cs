@@ -282,6 +282,12 @@ catch
     }
 }
 
+JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+{
+    NullValueHandling = NullValueHandling.Ignore,
+    Formatting = Formatting.Indented
+};
+
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
     {
@@ -375,7 +381,7 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
 // we continue the work.
 for (var i = 0; i < branches.Count; ++i)
 {
-    start:
+start:
     var branch = branches[i];
 
     if (branch.IsMerged) continue;
@@ -732,7 +738,7 @@ string GenerateTrainTable(GraftBranch branch, List<GraftBranch> branches)
 
     string table = "<pr-train-toc>";
 
-//    var longestPrNumber = branches.
+    //    var longestPrNumber = branches.
     return table;
 }
 

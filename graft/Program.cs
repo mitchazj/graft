@@ -293,7 +293,7 @@ AnsiConsole.Status()
 
             var searchForPRs = new PullRequestRequest()
             {
-                Base = branch.Name,
+                Head = branch.Name,
                 State = ItemStateFilter.All
             };
 
@@ -746,11 +746,9 @@ string GenerateTrainTable(GraftBranch branch, List<GraftBranch> branches)
     // <pr-train-toc>
     // |     | PR      | Description                                                 |
     // | --- | ------- | ----------------------------------------------------------- |
-    // | 👉  | #402375 | Add FE stubbed Fake Data for External Invoices - [PAY-3933] |
-    // |     | #403234 | Purhi - Stub External Purchase Description - [PAY-3913]     |
-    // |     | #403260 | Purhi - Add Storybook File for External                     |
-    // |     | #403383 | Purhi - Add Dute Date to External Description               |
-    // |     | #403407 | Purhi - Add Invoice Id to External Description              |
+    // | 👉  | #402375 | Description here                                            |
+    // |     | #403234 | Description here                                            |
+    // |     | #403260 | Page/Component - Desc - Ticket #                            |
     // </pr-train-toc>
     //
 

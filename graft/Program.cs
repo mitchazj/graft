@@ -320,15 +320,15 @@ foreach (var branch in branches)
                 markMerged,
                 createNewPr,
             });
-        
+
         if (choice == markMerged)
         {
             branch.StoreMergeStatus(true, ymlFilePath, baseBranch);
-            AnsiConsole.MarkupLine($"[gray]Marked {branch.Name} as merged");
+            AnsiConsole.MarkupLine($"[gray]Marked {branch.Name} as merged[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine($"[gray]We'll create a new PR for {branch.Name}");
+            AnsiConsole.MarkupLine($"[gray]We'll create a new PR for {branch.Name}[/]");
         }
     }
 }
@@ -453,9 +453,24 @@ AnsiConsole.Status()
                 new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
             var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
             createdPullRequestTask.Wait();
-            AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}");
+            AnsiConsole.MarkupLine($"[gray]Created a pr for {previousBranch}[/]");
 
             previousBranch = branch.Name;
+        }
+
+        // Handle merging the first branch into baseBranch
+        if (previousBranch != "")
+        {
+            var branch = branches.First(x => x.Name == previousBranch);
+            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
+
+            if (openPr == null)
+            {
+                var pullRequest = new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name, baseBranch);
+                var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+                createdPullRequestTask.Wait();
+                AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}[/]");
+            }
         }
     });
 

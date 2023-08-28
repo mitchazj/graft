@@ -271,10 +271,6 @@ catch
         var ownerAndRepo = urlParts[1].Split('/');
         owner = ownerAndRepo[0];
         repoName = ownerAndRepo[1];
-        Console.WriteLine("----");
-        Console.WriteLine(owner);
-        Console.WriteLine(repoName);
-        Console.WriteLine("----");
     }
     catch
     {
@@ -301,7 +297,6 @@ AnsiConsole.Status()
                 State = ItemStateFilter.All
             };
 
-            // TODO: some form of bug seems to be happening here
             var pullRequestsTask = client.PullRequest.GetAllForRepository(owner, repoName, searchForPRs);
             var pullRequests = pullRequestsTask.Result;
 

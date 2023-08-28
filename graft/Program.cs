@@ -53,7 +53,8 @@ if (!File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile
 }
 
 // Read the github token
-var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.graft/token");
+var token = File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/.graft/token")
+    .ReplaceLineEndings("");
 
 // Create the github client
 GitHubClient client;
@@ -277,16 +278,11 @@ catch
     }
     catch
     {
-        AnsiConsole.MarkupLine("[red]Error:[/] failed to parse the git origin to determine the owner & repo name on origin.");
+        AnsiConsole.MarkupLine(
+            "[red]Error:[/] failed to parse the git origin to determine the owner & repo name on origin.");
         return;
     }
 }
-
-JsonConvert.DefaultSettings = () => new JsonSerializerSettings
-{
-    NullValueHandling = NullValueHandling.Ignore,
-    Formatting = Formatting.Indented
-};
 
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
@@ -381,7 +377,7 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
 // we continue the work.
 for (var i = 0; i < branches.Count; ++i)
 {
-start:
+    start:
     var branch = branches[i];
 
     if (branch.IsMerged) continue;

@@ -310,11 +310,12 @@ foreach (var branch in branches)
 {
     if (branch.PullRequests.Exists(x => x.ClosedAt != null))
     {
+        var pr = branch.PullRequests.Find(x => x.ClosedAt != null);
         var markMerged = "Mark this branch as merged";
         var createNewPr = "Create a new PR for this branch";
         // TODO: add "Remove this branch from the train entirely"
 
-        var choice = Prompt.Select($"The PR attached to {branch.Name} has been closed on origin. Would you like to",
+        var choice = Prompt.Select($"The [PR attached to {branch.Name}]({pr.Url}) has been closed on origin. Would you like to",
             new[]
             {
                 markMerged,

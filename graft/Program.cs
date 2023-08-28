@@ -301,7 +301,6 @@ AnsiConsole.Status()
 
             // TODO: some form of bug seems to be happening here
             var pullRequestsTask = client.PullRequest.GetAllForRepository(owner, repoName, searchForPRs);
-            pullRequestsTask.Wait();
             var pullRequests = pullRequestsTask.Result;
 
             if (pullRequests.Count == 0) continue;

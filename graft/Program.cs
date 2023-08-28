@@ -310,9 +310,10 @@ foreach (var branch in branches)
 {
     if (branch.PullRequests.Exists(x => x.ClosedAt != null))
     {
-        // "Remove this branch from the train entirely"
         var markMerged = "Mark this branch as merged";
         var createNewPr = "Create a new PR for this branch";
+        // TODO: add "Remove this branch from the train entirely"
+
         var choice = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to",
             new[]
             {
@@ -322,14 +323,15 @@ foreach (var branch in branches)
         
         if (choice == markMerged)
         {
-            
+            branch.StoreMergeStatus(true, ymlFilePath, baseBranch);
+            AnsiConsole.MarkupLine($"[gray]Marked {branch.Name} as merged");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[gray]We'll create a new PR for {branch.Name}");
         }
     }
 }
-
-// Mark the "mitchazj-branch-three" branch as merged
-// var cb = branches.First(x => x.Name == "mitchazj-branch-three");
-// cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
 
 // Graft master into the first unmerged branch in train
 GraftBranch firstBranchNotMerged;
@@ -447,12 +449,11 @@ AnsiConsole.Status()
                 continue; // TODO: handle this case
             }
 
-            // TODO: handle there being a PR but it's closed / merged.
-
             var pullRequest =
                 new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
             var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
             createdPullRequestTask.Wait();
+            AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}");
 
             previousBranch = branch.Name;
         }

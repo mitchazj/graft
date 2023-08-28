@@ -306,14 +306,26 @@ AnsiConsole.Status()
         }
     });
 
-// Console.WriteLine();
-// var city = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to", new[]
-// {
-//     "Mark this branch as merged",
-//     "Create a new PR for this branch",
-//     "Remove this branch from the train entirely"
-// });
-// Console.WriteLine($"Hello, {city}!");
+foreach (var branch in branches)
+{
+    if (branch.PullRequests.Exists(x => x.ClosedAt != null))
+    {
+        // "Remove this branch from the train entirely"
+        var markMerged = "Mark this branch as merged";
+        var createNewPr = "Create a new PR for this branch";
+        var choice = Prompt.Select($"The PR attached to {currentBranch} has been closed on origin. Would you like to",
+            new[]
+            {
+                markMerged,
+                createNewPr,
+            });
+        
+        if (choice == markMerged)
+        {
+            
+        }
+    }
+}
 
 // Mark the "mitchazj-branch-three" branch as merged
 // var cb = branches.First(x => x.Name == "mitchazj-branch-three");

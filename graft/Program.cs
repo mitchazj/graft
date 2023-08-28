@@ -439,7 +439,7 @@ AnsiConsole.Status()
             }
 
             var pullRequest =
-                new NewPullRequest($"Merge {branch.Name} into {previousBranch}", branch.Name, previousBranch);
+                new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
             var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
             createdPullRequestTask.Wait();
 

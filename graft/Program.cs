@@ -270,7 +270,7 @@ catch
         var urlParts = remote.Url.Split(':');
         var ownerAndRepo = urlParts[1].Split('/');
         owner = ownerAndRepo[0];
-        repoName = ownerAndRepo[1];
+        repoName = ownerAndRepo[1].Replace(".git", "");
     }
     catch
     {

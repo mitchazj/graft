@@ -315,12 +315,9 @@ AnsiConsole.Status()
 // });
 // Console.WriteLine($"Hello, {city}!");
 
-
 // Mark the "mitchazj-branch-three" branch as merged
 // var cb = branches.First(x => x.Name == "mitchazj-branch-three");
 // cb.StoreMergeStatus(!cb.IsMerged, ymlFilePath, baseBranch);
-
-AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
 // Graft master into the first unmerged branch in train
 GraftBranch firstBranchNotMerged;
@@ -367,6 +364,8 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
 
     Thread.Sleep(100);
 }
+
+AnsiConsole.MarkupLine("[gray]grafting...[/]");
 
 // Now that we have handled the base case (optionally grafting baseBranch into firstBranchNotMergeed)
 // we continue the work.
@@ -438,12 +437,14 @@ AnsiConsole.Status()
                 continue; // TODO: handle this case
             }
 
+            // TODO: handle there being a PR but it's closed / merged.
+
             var pullRequest =
                 new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
             var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
             createdPullRequestTask.Wait();
 
-            // TODO: handle there being a PR but it's closed / merged.
+            previousBranch = branch.Name;
         }
     });
 

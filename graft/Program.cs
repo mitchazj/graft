@@ -265,8 +265,6 @@ catch
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
     {
-        // TODO need to check any existing PRs to see if they merged
-
         for (var i = 0; i < branches.Count; ++i)
         {
             var branch = branches[i];

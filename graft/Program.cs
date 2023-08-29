@@ -493,6 +493,14 @@ AnsiConsole.Status()
                         $"[red]Coultn't create a pr for {branch.Name}, please check that origin exists and that there are sufficient changes[/]");
                 }
             }
+            else
+            {
+                // There's an open pr.
+                PullRequestUpdate update = new PullRequestUpdate();
+                update.Body = GenerateTrainTable(previousBranch, branches);
+                client.PullRequest.Update(owner, repoName, openPr.Number, update);
+                AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
+            }
         }
     });
 

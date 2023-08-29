@@ -191,7 +191,8 @@ bool IsRepoDirty()
 bool IsMergeConflict(string mergeOutput)
 {
     // Check if the merge output contains conflict markers
-    return mergeOutput.Contains("<<<<<<<") || mergeOutput.Contains("=======") || mergeOutput.Contains(">>>>>>>");
+    return mergeOutput.Contains("Automatic merge failed; fix conflicts");
+    // return mergeOutput.Contains("<<<<<<<") || mergeOutput.Contains("=======") || mergeOutput.Contains(">>>>>>>");
 }
 
 GraftMergeResult MergeBranch(string sourceBranch)
@@ -203,7 +204,7 @@ GraftMergeResult MergeBranch(string sourceBranch)
         ProcessStartInfo startInfo = new ProcessStartInfo
         {
             FileName = "git",
-            Arguments = $"merge --no-ff {sourceBranch}",
+            Arguments = $"merge --no-commit {sourceBranch}",
             WorkingDirectory = rootPath,
             RedirectStandardOutput = true,
             UseShellExecute = false,

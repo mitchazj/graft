@@ -417,6 +417,8 @@ for (var i = 0; i < branches.Count; ++i)
     Thread.Sleep(100);
 }
 
+var EXCESSIVE_DEBUG = true;
+
 AnsiConsole.Status()
     .Start("Updating PR train...", ctx =>
     {
@@ -424,59 +426,51 @@ AnsiConsole.Status()
         for (var i = branches.Count - 2; i >= 0; --i)
         {
             var branch = branches[i];
+            if (EXCESSIVE_DEBUG) Console.WriteLine($"Looking at {branch.Name}");
 
             if (branch.Name == baseBranch) continue;
 
             if (previousBranch == "" && !branch.IsMerged)
             {
+                if (EXCESSIVE_DEBUG) Console.WriteLine($"Set previous branch as {branch.Name}");
                 previousBranch = branch.Name;
                 // TODO: I think I need to do something here
                 continue;
             }
 
-            // Find the first pr that is open (ie doesn't have a "closed at" date)
-            var openPr = branches.First(x => x.Name == previousBranch).PullRequests.Find(x => x.ClosedAt == null);
-
-            if (openPr != null && !branch.IsMerged)
+            if (EXCESSIVE_DEBUG)
+                Console.WriteLine($"Found {branch.PullRequests.Count} pull requests for {branch.Name}");
+            foreach (var pr in branch.PullRequests)
             {
-                // There's an open pr.
                 PullRequestUpdate update = new PullRequestUpdate();
                 update.Body = GenerateTrainTable(previousBranch, branches);
-                client.PullRequest.Update(owner, repoName, openPr.Number, update).Wait();
-                AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
-                previousBranch = branch.Name;
-                continue;
+                client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
+                AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {previousBranch}[/]");
             }
 
-            if (branch.IsMerged)
+            // Find the first pr that is open (ie doesn't have a "closed at" date)
+            var openPr = branches.First(x => x.Name == previousBranch).PullRequests.Find(x => x.ClosedAt == null);
+            if (openPr == null && !branch.IsMerged)
             {
-                foreach (var pr in branch.PullRequests)
+                try
                 {
-                    PullRequestUpdate update = new PullRequestUpdate();
-                    update.Body = GenerateTrainTable(previousBranch, branches);
-                    client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
-                    AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {previousBranch}[/]");
+                    var pullRequest =
+                        new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name)
+                        {
+                            Body = GenerateTrainTable(previousBranch, branches)
+                        };
+                    var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+                    createdPullRequestTask.Wait();
+                    AnsiConsole.MarkupLine($"[gray]Created a pr for {previousBranch}[/]");
                 }
-
-                continue;
+                catch
+                {
+                    AnsiConsole.MarkupLine(
+                        $"[red]Coultn't create a pr for {previousBranch}, please check that origin exists and that there are sufficient changes[/]");
+                }
             }
 
-            try
-            {
-                var pullRequest =
-                    new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name)
-                    {
-                        Body = GenerateTrainTable(previousBranch, branches)
-                    };
-                var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
-                createdPullRequestTask.Wait();
-                AnsiConsole.MarkupLine($"[gray]Created a pr for {previousBranch}[/]");
-            }
-            catch
-            {
-                AnsiConsole.MarkupLine(
-                    $"[red]Coultn't create a pr for {previousBranch}, please check that origin exists and that there are sufficient changes[/]");
-            }
+            if (branch.IsMerged) continue;
 
             previousBranch = branch.Name;
         }
@@ -485,8 +479,17 @@ AnsiConsole.Status()
         if (previousBranch != "")
         {
             var branch = branches.First(x => x.Name == previousBranch);
-            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
 
+            foreach (var pr in branch.PullRequests)
+            {
+                // There's an open pr.
+                PullRequestUpdate update = new PullRequestUpdate();
+                update.Body = GenerateTrainTable(previousBranch, branches);
+                client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
+                AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {previousBranch}[/]");
+            }
+
+            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
             if (openPr == null && !branch.IsMerged)
             {
                 try
@@ -504,17 +507,6 @@ AnsiConsole.Status()
                 {
                     AnsiConsole.MarkupLine(
                         $"[red]Coultn't create a pr for {branch.Name}, please check that origin exists and that there are sufficient changes[/]");
-                }
-            }
-            else
-            {
-                foreach (var pr in branch.PullRequests)
-                {
-                    // There's an open pr.
-                    PullRequestUpdate update = new PullRequestUpdate();
-                    update.Body = GenerateTrainTable(previousBranch, branches);
-                    client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
-                    AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {previousBranch}[/]");
                 }
             }
         }

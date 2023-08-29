@@ -479,10 +479,11 @@ AnsiConsole.Status()
         if (previousBranch != "")
         {
             var branch = branches.First(x => x.Name == previousBranch);
+            if (EXCESSIVE_DEBUG) Console.WriteLine($"Looking at {branch.Name} for merging into master");
+            if (EXCESSIVE_DEBUG) Console.WriteLine($"It has {branch.PullRequests.Count} pull requests");
 
             foreach (var pr in branch.PullRequests)
             {
-                // There's an open pr.
                 PullRequestUpdate update = new PullRequestUpdate();
                 update.Body = GenerateTrainTable(previousBranch, branches);
                 client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();

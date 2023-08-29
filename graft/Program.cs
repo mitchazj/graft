@@ -428,14 +428,6 @@ AnsiConsole.Status()
 
             if (branch.Name == baseBranch) continue;
 
-            if (previousBranch == "" && !branch.IsMerged)
-            {
-                if (EXCESSIVE_DEBUG) Console.WriteLine($"Set previous branch as {branch.Name}");
-                previousBranch = branch.Name;
-                // TODO: I think I need to do something here
-                continue;
-            }
-
             if (EXCESSIVE_DEBUG)
                 Console.WriteLine($"Found {branch.PullRequests.Count} pull requests for {branch.Name}");
             foreach (var pr in branch.PullRequests)
@@ -444,6 +436,14 @@ AnsiConsole.Status()
                 update.Body = GenerateTrainTable(branch.Name, branches);
                 client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
                 AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {branch.Name}[/]");
+            }
+
+            if (previousBranch == "" && !branch.IsMerged)
+            {
+                if (EXCESSIVE_DEBUG) Console.WriteLine($"Set previous branch as {branch.Name}");
+                previousBranch = branch.Name;
+                // TODO: I think I need to do something here
+                continue;
             }
 
             var previousBranchBr = branches.First(x => x.Name == previousBranch);
@@ -806,7 +806,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
     // </pr-train-toc>
     //
 
-    string table = "<pr-train-toc>\n\n";
+    string table = "<pr-train-toc>\r\n \r\n";
     table += "|   | PR | Status | Description |\n";
     table += "| - | -- | ------ | ----------- |\n";
     foreach (var branch in branches)
@@ -827,7 +827,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
         }
     }
 
-    table += "\n<pr-train-toc>";
+    table += "\n \r\n<pr-train-toc>";
     return table;
 }
 

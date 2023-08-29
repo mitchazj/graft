@@ -444,6 +444,8 @@ AnsiConsole.Status()
                 update.Body = GenerateTrainTable(previousBranch, branches);
                 client.PullRequest.Update(owner, repoName, openPr.Number, update);
                 AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
+                previousBranch = branch.Name;
+                continue;
             }
 
             try

@@ -2,6 +2,13 @@ using Octokit;
 
 namespace graft;
 
+enum GraftMergeResult
+{
+    Error,
+    Conflicts,
+    Success
+}
+
 public class GraftBranch
 {
     public string Name { get; set; }

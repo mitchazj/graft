@@ -245,6 +245,7 @@ for (var i = 0; i < branches.Count; ++i)
                 $"[yellow]Warning:[/] Encountered conflicts updating {branch.Name}, please resolve them in a seperate terminal before continuing.");
             Console.WriteLine();
             if (!Prompt.Confirm("Continue?")) return;
+            // TODO: sleep here or somehow wait/refresh git repo because it failed here unnecessarily
         }
 
         CompareToRemote(baseBranch);
@@ -308,18 +309,15 @@ AnsiConsole.Status()
 
 foreach (var branch in branches)
 {
-    if (branch.PullRequests.Exists(x => x.ClosedAt != null))
+    if (!branch.PullRequests.Exists(x => x.ClosedAt == null))
     {
-        var pr = branch.PullRequests.Find(x => x.ClosedAt != null);
         var markMerged = $"Mark {branch.Name} as merged";
         var createNewPr = $"Create a new PR for {branch.Name}";
         // TODO: add "Remove this branch from the train entirely"
 
-        Console.WriteLine();
-        AnsiConsole.MarkupLine($"({branch.Name}): [link]{pr.HtmlUrl}[/]");
         var choice = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title($"The PR attached to {branch.Name} has been closed on origin. Would you like to")
+                .Title($"Every PR attached to {branch.Name} has been closed on origin. Would you like to")
                 .AddChoices(new[]
                 {
                     markMerged,

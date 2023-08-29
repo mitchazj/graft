@@ -152,7 +152,43 @@ if (userName == null || userEmail == null)
 // TODO: figure out how to do failsafe recovery? Eg, if it exits in the middle of a graft, how to safely resume?
 // what things would we need to consider?
 
-if (repo.RetrieveStatus().IsDirty)
+bool IsRepoDirty()
+{
+    bool isDirty = false;
+
+    try
+    {
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = "status --porcelain",
+            WorkingDirectory = rootPath,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using (Process process = new Process())
+        {
+            process.StartInfo = startInfo;
+            process.Start();
+
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            isDirty = !string.IsNullOrWhiteSpace(output);
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("An error occurred while executing Git command: " + ex.Message);
+    }
+
+    return isDirty;
+
+}
+
+if (IsRepoDirty())
 {
     AnsiConsole.MarkupLine(
         "[red]Error:[/] Your current repository is in a dirty state, please fix this before continuning.");
@@ -178,7 +214,7 @@ if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
         Console.WriteLine();
         if (!Prompt.Confirm("Continue?")) return;
         Thread.Sleep(100);
-        if (repo.RetrieveStatus().IsDirty)
+        if (IsRepoDirty())
         {
             AnsiConsole.MarkupLine(
                 $"[yellow]Warning:[/] Repo is diry, please fix before continuing.");
@@ -220,7 +256,7 @@ for (var i = 0; i < branches.Count; ++i)
             Console.WriteLine();
             if (!Prompt.Confirm("Continue?")) return;
             Thread.Sleep(100);
-            if (repo.RetrieveStatus().IsDirty)
+            if (IsRepoDirty())
             {
                 AnsiConsole.MarkupLine(
                     $"[yellow]Warning:[/] Repo is diry, please fix before continuing.");
@@ -551,7 +587,7 @@ bool Graft(string branchName, string nextBranchName)
             }
 
             Thread.Sleep(100);
-            if (repo.RetrieveStatus().IsDirty)
+            if (IsRepoDirty())
             {
                 AnsiConsole.MarkupLine(
                     $"[yellow]Warning:[/] Repo is diry, please fix before continuing.");

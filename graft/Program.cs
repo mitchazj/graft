@@ -397,6 +397,9 @@ for (var i = 0; i < branches.Count; ++i)
         .Skip(1)
         .FirstOrDefault();
 
+    AnsiConsole.WriteLine(nextBranch.Name);
+    AnsiConsole.WriteLine(nextBranch.IsMerged);
+
     // We need to recompare at each iteration because we are modifying.
     CompareBranches(branch.Name, nextBranch.Name);
 

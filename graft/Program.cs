@@ -426,8 +426,8 @@ AnsiConsole.Status()
             var branch = branches[i];
 
             if (branch.Name == baseBranch) continue;
-            if (branch.IsMerged) continue;
-            if (previousBranch == "")
+
+            if (previousBranch == "" && !branch.IsMerged)
             {
                 previousBranch = branch.Name;
                 // TODO: I think I need to do something here
@@ -447,6 +447,8 @@ AnsiConsole.Status()
                 previousBranch = branch.Name;
                 continue;
             }
+
+            if (branch.IsMerged) continue;
 
             try
             {
@@ -499,7 +501,7 @@ AnsiConsole.Status()
                 PullRequestUpdate update = new PullRequestUpdate();
                 update.Body = GenerateTrainTable(previousBranch, branches);
                 client.PullRequest.Update(owner, repoName, openPr.Number, update).Wait();
-                AnsiConsole.MarkupLine($"[gray]From here, Updated the pr for {previousBranch}[/]");
+                AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
             }
         }
     });

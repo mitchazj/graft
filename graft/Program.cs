@@ -324,14 +324,6 @@ foreach (var branch in branches)
                     createNewPr
                 }));
 
-//        var choice = Prompt.Select(
-//            $"The [PR attached to {branch.Name}]({pr.Url}) has been closed on origin. Would you like to",
-//            new[]
-//            {
-//                markMerged,
-//                createNewPr,
-//            });
-
         if (choice == markMerged)
         {
             branch.StoreMergeStatus(true, ymlFilePath, baseBranch);

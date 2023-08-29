@@ -315,9 +315,10 @@ foreach (var branch in branches)
         var createNewPr = "Create a new PR for this branch";
         // TODO: add "Remove this branch from the train entirely"
 
+        AnsiConsole.MarkupLine($"[link={pr.HtmlUrl}]Click to view the PR for {branch.Name}[/]");
         var choice = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title($"The [link={pr.HtmlUrl}]PR attached to {branch.Name}[/] has been closed on origin. Would you like to")
+                .Title($"The PR attached to {branch.Name} has been closed on origin. Would you like to")
                 .AddChoices(new[]
                 {
                     markMerged,

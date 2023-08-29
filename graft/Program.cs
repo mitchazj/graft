@@ -442,7 +442,7 @@ AnsiConsole.Status()
                 // There's an open pr.
                 PullRequestUpdate update = new PullRequestUpdate();
                 update.Body = GenerateTrainTable(previousBranch, branches);
-                client.PullRequest.Update(owner, repoName, openPr.Number, update);
+                client.PullRequest.Update(owner, repoName, openPr.Number, update).Wait();
                 AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
                 previousBranch = branch.Name;
                 continue;
@@ -497,8 +497,8 @@ AnsiConsole.Status()
             {
                 // There's an open pr.
                 PullRequestUpdate update = new PullRequestUpdate();
-                update.Body = GenerateTrainTable(baseBranch, branches);
-                client.PullRequest.Update(owner, repoName, openPr.Number, update);
+                update.Body = GenerateTrainTable(previousBranch, branches);
+                client.PullRequest.Update(owner, repoName, openPr.Number, update).Wait();
                 AnsiConsole.MarkupLine($"[gray]From here, Updated the pr for {previousBranch}[/]");
             }
         }

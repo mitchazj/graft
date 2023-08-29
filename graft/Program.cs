@@ -442,11 +442,19 @@ AnsiConsole.Status()
                 continue; // TODO: handle this case
             }
 
-            var pullRequest =
-                new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
-            var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
-            createdPullRequestTask.Wait();
-            AnsiConsole.MarkupLine($"[gray]Created a pr for {previousBranch}[/]");
+            try
+            {
+                var pullRequest =
+                    new NewPullRequest($"Merge {previousBranch} into {branch.Name}", previousBranch, branch.Name);
+                var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+                createdPullRequestTask.Wait();
+                AnsiConsole.MarkupLine($"[gray]Created a pr for {previousBranch}[/]");
+            }
+            catch
+            {
+                AnsiConsole.MarkupLine(
+                    $"[red]Coultn't create a pr for {previousBranch}, please check that there are sufficient changes[/]");
+            }
 
             previousBranch = branch.Name;
         }
@@ -459,10 +467,19 @@ AnsiConsole.Status()
 
             if (openPr == null)
             {
-                var pullRequest = new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name, baseBranch);
-                var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
-                createdPullRequestTask.Wait();
-                AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}[/]");
+                try
+                {
+                    var pullRequest = new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name,
+                        baseBranch);
+                    var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
+                    createdPullRequestTask.Wait();
+                    AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}[/]");
+                }
+                catch
+                {
+                    AnsiConsole.MarkupLine(
+                        $"[red]Coultn't create a pr for {previousBranch}, please check that there are sufficient changes[/]");
+                }
             }
         }
     });

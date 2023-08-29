@@ -317,7 +317,7 @@ foreach (var branch in branches)
 
         var choice = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title("The [PR attached to {branch.Name}]({pr.Url}) has been closed on origin. Would you like to")
+                .Title($"The [link={pr.HtmlUrl}]PR attached to {branch.Name}[/] has been closed on origin. Would you like to")
                 .AddChoices(new[]
                 {
                     markMerged,

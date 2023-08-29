@@ -803,7 +803,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
                 : 0));
         foreach (var pr in prs)
         {
-            var isMergedAppendable = pr.ClosedAt != null ? "merged" : "open";
+            var isMergedAppendable = pr.ClosedAt != null ? "`merged`" : "`open`";
             table += $"| {isBranchAppendable} | #{pr.Number} | {isMergedAppendable} | {pr.Title} |\n";
         }
     }

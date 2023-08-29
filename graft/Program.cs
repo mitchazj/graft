@@ -428,14 +428,6 @@ AnsiConsole.Status()
 
             if (branch.Name == baseBranch) continue;
 
-            if (previousBranch == "" && !branch.IsMerged)
-            {
-                if (EXCESSIVE_DEBUG) Console.WriteLine($"Set previous branch as {branch.Name}");
-                previousBranch = branch.Name;
-                // TODO: I think I need to do something here
-                continue;
-            }
-
             if (EXCESSIVE_DEBUG)
                 Console.WriteLine($"Found {branch.PullRequests.Count} pull requests for {branch.Name}");
             foreach (var pr in branch.PullRequests)
@@ -444,6 +436,14 @@ AnsiConsole.Status()
                 update.Body = GenerateTrainTable(branch.Name, branches);
                 client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
                 AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {branch.Name}[/]");
+            }
+
+            if (previousBranch == "" && !branch.IsMerged)
+            {
+                if (EXCESSIVE_DEBUG) Console.WriteLine($"Set previous branch as {branch.Name}");
+                previousBranch = branch.Name;
+                // TODO: I think I need to do something here
+                continue;
             }
 
             var previousBranchBr = branches.First(x => x.Name == previousBranch);

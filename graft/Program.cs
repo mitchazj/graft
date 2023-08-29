@@ -188,6 +188,79 @@ bool IsRepoDirty()
 
 }
 
+bool IsMergeConflict(string mergeOutput)
+{
+    // Check if the merge output contains conflict markers
+    return mergeOutput.Contains("<<<<<<<") || mergeOutput.Contains("=======") || mergeOutput.Contains(">>>>>>>");
+}
+
+GraftMergeResult MergeBranch(string sourceBranch)
+{
+    string output = string.Empty;
+
+    try
+    {
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = $"merge --no-ff {sourceBranch}",
+            WorkingDirectory = rootPath,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using (Process process = new Process())
+        {
+            process.StartInfo = startInfo;
+            process.Start();
+
+            output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("An error occurred while executing Git command: " + ex.Message);
+        return GraftMergeResult.Error;
+    }
+
+    bool isConflict = IsMergeConflict(output);
+
+    if (isConflict)
+    {
+        return GraftMergeResult.Conflicts;
+    }
+    else
+    {
+        try
+        {
+            ProcessStartInfo commitInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "commit -m 'Merge branch " + sourceBranch + "'",
+                WorkingDirectory = pathToRepository,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process commitProcess = new Process())
+            {
+                commitProcess.StartInfo = commitInfo;
+                commitProcess.Start();
+                commitProcess.WaitForExit();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("An error occurred while committing the merge: " + ex.Message);
+            return GraftMergeResult.Error;
+        }
+
+        return GraftMergeResult.Success;
+    }
+}
+
 if (IsRepoDirty())
 {
     AnsiConsole.MarkupLine(
@@ -204,10 +277,11 @@ if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
 
     Commands.Checkout(repo, baseBranchRepo);
 
-    var mergeResult = repo.Merge(baseBranchRepoUpstream.Tip,
-        new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+//    var mergeResult = repo.Merge(baseBranchRepoUpstream.Tip,
+//        new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
 
-    if (mergeResult.Status == MergeStatus.Conflicts)
+    var mergeResult = MergeBranch(baseBranchRepoUpstream.FriendlyName);
+    if (mergeResult == GraftMergeResult.Conflicts)
     {
         AnsiConsole.MarkupLine(
             $"[yellow]Warning:[/] Encountered conflicts updating {baseBranch}, please resolve them in a seperate terminal before continuing.");
@@ -247,9 +321,10 @@ for (var i = 0; i < branches.Count; ++i)
         var branchRepo = repo.Branches[branch.Name];
         var branchRepoUpstream = branchRepo.TrackedBranch;
         Commands.Checkout(repo, branchRepo);
-        var mergeResult = repo.Merge(branchRepoUpstream.Tip,
-            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
-        if (mergeResult.Status == MergeStatus.Conflicts)
+//        var mergeResult = repo.Merge(branchRepoUpstream.Tip,
+//            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+        var mergeResult = MergeBranch(branchRepoUpstream.FriendlyName);
+        if (mergeResult == GraftMergeResult.Conflicts)
         {
             AnsiConsole.MarkupLine(
                 $"[yellow]Warning:[/] Encountered conflicts updating {branch.Name}, please resolve them in a seperate terminal before continuing.");
@@ -570,10 +645,11 @@ bool Graft(string branchName, string nextBranchName)
     {
         Commands.Checkout(repo, nextBranchRepo);
 
-        var mergeResult = repo.Merge(branchRepo.Tip,
-            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
+//        var mergeResult = repo.Merge(branchRepo.Tip,
+//            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
 
-        if (mergeResult.Status == MergeStatus.Conflicts)
+        var mergeResult = MergeBranch(branchRepo.FriendlyName);
+        if (mergeResult == GraftMergeResult.Conflicts)
         {
             AnsiConsole.MarkupLine(
                 $"[yellow]Warning:[/] Encountered conflicts grafting {branchName}, please resolve them in a seperate terminal before continuing.");

@@ -239,7 +239,7 @@ GraftMergeResult MergeBranch(string sourceBranch)
             {
                 FileName = "git",
                 Arguments = "commit -m 'Merge branch " + sourceBranch + "'",
-                WorkingDirectory = pathToRepository,
+                WorkingDirectory = rootPath,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };

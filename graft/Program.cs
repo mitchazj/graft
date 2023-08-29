@@ -436,9 +436,11 @@ AnsiConsole.Status()
                 continue;
             }
 
+            var previousBranchBr = branches.First(x => x.Name == previousBranch);
+
             if (EXCESSIVE_DEBUG)
-                Console.WriteLine($"Found {branch.PullRequests.Count} pull requests for {branch.Name}");
-            foreach (var pr in branch.PullRequests)
+                Console.WriteLine($"Found {previousBranchBr.PullRequests.Count} pull requests for {previousBranchBr.Name}");
+            foreach (var pr in previousBranchBr.PullRequests)
             {
                 PullRequestUpdate update = new PullRequestUpdate();
                 update.Body = GenerateTrainTable(previousBranch, branches);
@@ -447,7 +449,7 @@ AnsiConsole.Status()
             }
 
             // Find the first pr that is open (ie doesn't have a "closed at" date)
-            var openPr = branches.First(x => x.Name == previousBranch).PullRequests.Find(x => x.ClosedAt == null);
+            var openPr = previousBranchBr.PullRequests.Find(x => x.ClosedAt == null);
             if (openPr == null && !branch.IsMerged)
             {
                 try
@@ -805,7 +807,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
     //
 
     string table = "<pr-train-toc>\n\n";
-    table += "|   | PR | Merged | Description |\n";
+    table += "|   | PR | Status | Description |\n";
     table += "| - | -- | ------ | ----------- |\n";
     foreach (var branch in branches)
     {

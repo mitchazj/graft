@@ -437,7 +437,7 @@ AnsiConsole.Status()
             // Find the first pr that is open (ie doesn't have a "closed at" date)
             var openPr = branches.First(x => x.Name == previousBranch).PullRequests.Find(x => x.ClosedAt == null);
 
-            if (openPr != null)
+            if (openPr != null && !branch.IsMerged)
             {
                 // There's an open pr.
                 PullRequestUpdate update = new PullRequestUpdate();
@@ -448,7 +448,18 @@ AnsiConsole.Status()
                 continue;
             }
 
-            if (branch.IsMerged) continue;
+            if (branch.IsMerged)
+            {
+                foreach (var pr in branch.PullRequests)
+                {
+                    PullRequestUpdate update = new PullRequestUpdate();
+                    update.Body = GenerateTrainTable(previousBranch, branches);
+                    client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
+                    AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
+                }
+
+                continue;
+            }
 
             try
             {
@@ -476,7 +487,7 @@ AnsiConsole.Status()
             var branch = branches.First(x => x.Name == previousBranch);
             var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
 
-            if (openPr == null)
+            if (openPr == null && !branch.IsMerged)
             {
                 try
                 {
@@ -497,11 +508,14 @@ AnsiConsole.Status()
             }
             else
             {
-                // There's an open pr.
-                PullRequestUpdate update = new PullRequestUpdate();
-                update.Body = GenerateTrainTable(previousBranch, branches);
-                client.PullRequest.Update(owner, repoName, openPr.Number, update).Wait();
-                AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
+                foreach (var pr in branch.PullRequests)
+                {
+                    // There's an open pr.
+                    PullRequestUpdate update = new PullRequestUpdate();
+                    update.Body = GenerateTrainTable(previousBranch, branches);
+                    client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
+                    AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
+                }
             }
         }
     });

@@ -453,7 +453,7 @@ AnsiConsole.Status()
             catch
             {
                 AnsiConsole.MarkupLine(
-                    $"[red]Coultn't create a pr for {previousBranch}, please check that there are sufficient changes[/]");
+                    $"[red]Coultn't create a pr for {previousBranch}, please check that origin exists and that there are sufficient changes[/]");
             }
 
             previousBranch = branch.Name;
@@ -478,7 +478,7 @@ AnsiConsole.Status()
                 catch
                 {
                     AnsiConsole.MarkupLine(
-                        $"[red]Coultn't create a pr for {previousBranch}, please check that there are sufficient changes[/]");
+                        $"[red]Coultn't create a pr for {previousBranch}, please check that origin exists and that there are sufficient changes[/]");
                 }
             }
         }

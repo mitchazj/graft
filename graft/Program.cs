@@ -415,7 +415,7 @@ for (var i = 0; i < branches.Count; ++i)
     Thread.Sleep(100);
 }
 
-var EXCESSIVE_DEBUG = false;
+var EXCESSIVE_DEBUG = true;
 
 AnsiConsole.Status()
     .Start("Updating PR train...", ctx =>

@@ -262,6 +262,39 @@ GraftMergeResult MergeBranch(string sourceBranch)
     }
 }
 
+string Checkout(string branchName)
+{
+    string output = string.Empty;
+
+    try
+    {
+        ProcessStartInfo startInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = $"checkout {branchName}",
+            WorkingDirectory = rootPath,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using (Process process = new Process())
+        {
+            process.StartInfo = startInfo;
+            process.Start();
+
+            output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("An error occurred while executing Git command: " + ex.Message);
+    }
+
+    return output;
+}
+
 if (IsRepoDirty())
 {
     AnsiConsole.MarkupLine(
@@ -276,7 +309,7 @@ if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
     var baseBranchRepo = repo.Branches[baseBranch];
     var baseBranchRepoUpstream = repo.Branches[baseBranch].TrackedBranch;
 
-    Commands.Checkout(repo, baseBranchRepo);
+    Checkout(baseBranchRepo.FriendlyName);
 
 //    var mergeResult = repo.Merge(baseBranchRepoUpstream.Tip,
 //        new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
@@ -321,7 +354,7 @@ for (var i = 0; i < branches.Count; ++i)
     {
         var branchRepo = repo.Branches[branch.Name];
         var branchRepoUpstream = branchRepo.TrackedBranch;
-        Commands.Checkout(repo, branchRepo);
+        Checkout(branchRepo.FriendlyName);
 //        var mergeResult = repo.Merge(branchRepoUpstream.Tip,
 //            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));
         var mergeResult = MergeBranch(branchRepoUpstream.FriendlyName);
@@ -464,7 +497,7 @@ if (shouldUpdateOnMaster || firstBranchNotMerged.AheadOfOriginBy > 0)
 {
     if (repo.Head.FriendlyName != firstBranchNotMerged.Name)
     {
-        Commands.Checkout(repo, repo.Branches[firstBranchNotMerged.Name]);
+        Checkout(repo.Branches[firstBranchNotMerged.Name].FriendlyName);
     }
 
     Thread.Sleep(100);
@@ -515,7 +548,7 @@ for (var i = 0; i < branches.Count; ++i)
     {
         if (repo.Head.FriendlyName != nextBranch.Name)
         {
-            Commands.Checkout(repo, repo.Branches[nextBranch.Name]);
+            Checkout(repo.Branches[nextBranch.Name].FriendlyName);
         }
 
         Thread.Sleep(100);
@@ -630,7 +663,7 @@ Console.WriteLine();
 if (repo.Head.FriendlyName != currentBranch)
 {
     Console.WriteLine($"Taking you back to {currentBranch}...");
-    Commands.Checkout(repo, currentBranch);
+    Checkout(currentBranch);
 }
 
 Console.WriteLine("All done!");
@@ -644,7 +677,7 @@ bool Graft(string branchName, string nextBranchName)
 
     try
     {
-        Commands.Checkout(repo, nextBranchRepo);
+        Checkout(nextBranchRepo.FriendlyName);
 
 //        var mergeResult = repo.Merge(branchRepo.Tip,
 //            new LibGit2Sharp.Signature(userName.Value, userEmail.Value, DateTimeOffset.Now));

@@ -293,7 +293,7 @@ AnsiConsole.Status()
 
             var searchForPRs = new PullRequestRequest()
             {
-                Head = branch.Name,
+                Head = owner + ":" + branch.Name,
                 State = ItemStateFilter.All
             };
 
@@ -315,8 +315,7 @@ foreach (var branch in branches)
         var createNewPr = "Create a new PR for this branch";
         // TODO: add "Remove this branch from the train entirely"
 
-//        AnsiConsole.MarkupLine($"[link={pr.HtmlUrl}]Click to view the PR for {branch.Name}[/]");
-        AnsiConsole.MarkupLine($"[link]{pr.HtmlUrl}[/]");
+        AnsiConsole.MarkupLine($"({branch.Name}): [link]{pr.HtmlUrl}[/]");
         var choice = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title($"The PR attached to {branch.Name} has been closed on origin. Would you like to")

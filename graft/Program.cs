@@ -806,7 +806,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
     // </pr-train-toc>
     //
 
-    string table = "<pr-train-toc>\n\n";
+    string table = "<pr-train-toc>\r\n \r\n";
     table += "|   | PR | Status | Description |\n";
     table += "| - | -- | ------ | ----------- |\n";
     foreach (var branch in branches)
@@ -827,7 +827,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
         }
     }
 
-    table += "\n<pr-train-toc>";
+    table += "\n \r\n<pr-train-toc>";
     return table;
 }
 

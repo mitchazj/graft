@@ -436,17 +436,17 @@ AnsiConsole.Status()
                 continue;
             }
 
-            var previousBranchBr = branches.First(x => x.Name == previousBranch);
-
             if (EXCESSIVE_DEBUG)
-                Console.WriteLine($"Found {previousBranchBr.PullRequests.Count} pull requests for {previousBranchBr.Name}");
-            foreach (var pr in previousBranchBr.PullRequests)
+                Console.WriteLine($"Found {branch.PullRequests.Count} pull requests for {branch.Name}");
+            foreach (var pr in branch.PullRequests)
             {
                 PullRequestUpdate update = new PullRequestUpdate();
-                update.Body = GenerateTrainTable(previousBranch, branches);
+                update.Body = GenerateTrainTable(branch.Name, branches);
                 client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
-                AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {previousBranch}[/]");
+                AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {branch.Name}[/]");
             }
+
+            var previousBranchBr = branches.First(x => x.Name == previousBranch);
 
             // Find the first pr that is open (ie doesn't have a "closed at" date)
             var openPr = previousBranchBr.PullRequests.Find(x => x.ClosedAt == null);

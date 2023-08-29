@@ -396,8 +396,7 @@ for (var i = 0; i < branches.Count; ++i)
     if (branch.Name == baseBranch) continue;
     if (i + 1 < branches.Count && branches[i + 1].Name == baseBranch) continue;
 
-    var nextBranch = branches.SkipWhile(x => x.Name != branch.Name)
-        .SkipWhile(x => x.IsMerged)
+    var nextBranch = branches.SkipWhile(x => x.Name != branch.Name || x.IsMerged)
         .Skip(1)
         .FirstOrDefault();
 
@@ -541,8 +540,7 @@ string GetBranchStatus(string branchName)
 {
     try
     {
-        var nextBranch = branches.SkipWhile(x => x.Name != branchName)
-            .SkipWhile(x => x.IsMerged)
+        var nextBranch = branches.SkipWhile(x => x.Name != branchName || x.IsMerged)
             .Skip(1)
             .FirstOrDefault();
 

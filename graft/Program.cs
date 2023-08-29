@@ -70,9 +70,11 @@ catch
 
 // Get the base branch
 string baseBranch;
+string baseMergeBranch;
 try
 {
     baseBranch = ((YamlMappingNode)yaml.Documents[0].RootNode["prs"])["main-branch-name"].ToString();
+    baseMergeBranch = ((YamlMappingNode)yaml.Documents[0].RootNode["prs"])["branch-into"].ToString();
 }
 catch
 {
@@ -620,7 +622,7 @@ AnsiConsole.Status()
             previousBranch = branch.Name;
         }
 
-        // Handle merging the first branch into baseBranch
+        // Handle merging the first branch into baseMergeBranch
         if (previousBranch != "")
         {
             var branch = branches.First(x => x.Name == previousBranch);
@@ -641,7 +643,7 @@ AnsiConsole.Status()
                 try
                 {
                     var pullRequest =
-                        new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name, baseBranch)
+                        new NewPullRequest($"Merge {branch.Name} into {baseMergeBranch}", branch.Name, baseMergeBranch)
                         {
                             Body = GenerateTrainTable(branch.Name, branches)
                         };

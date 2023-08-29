@@ -265,13 +265,11 @@ catch
 AnsiConsole.Status()
     .Start("Checking PRs...", ctx =>
     {
-        // TODO need to check any existing PRs to see if they merged
-
         for (var i = 0; i < branches.Count; ++i)
         {
             var branch = branches[i];
             if (branch.Name == baseBranch) continue;
-            if (branch.IsMerged) continue;
+            // if (branch.IsMerged) continue;
 
             var searchForPRs = new PullRequestRequest()
             {

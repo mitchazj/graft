@@ -787,7 +787,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
     // </pr-train-toc>
     //
 
-    string table = "<pr-train-toc>\n";
+    string table = "<pr-train-toc>\n\n";
     table += "|   | PR | Merged | Description |\n";
     table += "| - | -- | ------ | ----------- |\n";
     foreach (var branch in branches)
@@ -808,7 +808,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
         }
     }
 
-    table += "<pr-train-toc>";
+    table += "\n<pr-train-toc>";
     return table;
 }
 

@@ -342,10 +342,7 @@ foreach (var branch in branches)
 GraftBranch firstBranchNotMerged;
 try
 {
-    firstBranchNotMerged = branches.SkipWhile(x => x.IsMerged)
-        .SkipWhile(x => x.Name == baseBranch)
-        .FirstOrDefault();
-
+    firstBranchNotMerged = branches.SkipWhile(x => x.IsMerged || x.Name == baseBranch).FirstOrDefault();
     if (firstBranchNotMerged == null) throw new Exception();
 }
 catch

@@ -401,6 +401,12 @@ for (var i = 0; i < branches.Count; ++i)
         .SkipWhile(x => x.IsMerged)
         .FirstOrDefault();
 
+    if (nextBranch.Name == baseBranch)
+    {
+        Console.WriteLine($"Nothing to graft {branch.Name} into");
+        continue;
+    }
+
     // We need to recompare at each iteration because we are modifying.
     CompareBranches(branch.Name, nextBranch.Name);
 

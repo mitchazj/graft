@@ -499,7 +499,7 @@ AnsiConsole.Status()
                 PullRequestUpdate update = new PullRequestUpdate();
                 update.Body = GenerateTrainTable(previousBranch, branches);
                 client.PullRequest.Update(owner, repoName, openPr.Number, update);
-                AnsiConsole.MarkupLine($"[gray]Updated the pr for {previousBranch}[/]");
+                AnsiConsole.MarkupLine($"[gray]From here, Updated the pr for {previousBranch}[/]");
             }
         }
     });

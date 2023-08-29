@@ -51,7 +51,7 @@ public class GraftBranch
                 if (isMerged)
                 {
                     // Note: this doesn't check if the "merged" is commented
-                    if (lines[i + 1].Contains("merged:")) return;
+                    if (i + 1 < lines.Length && lines[i + 1].Contains("merged:")) return;
 
                     var indent = line.IndexOf('-');
                     var listLines = lines.ToList();

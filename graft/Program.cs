@@ -311,10 +311,11 @@ foreach (var branch in branches)
     if (branch.PullRequests.Exists(x => x.ClosedAt != null))
     {
         var pr = branch.PullRequests.Find(x => x.ClosedAt != null);
-        var markMerged = "Mark this branch as merged";
-        var createNewPr = "Create a new PR for this branch";
+        var markMerged = $"Mark {branch.Name} as merged";
+        var createNewPr = $"Create a new PR for {branch.Name}";
         // TODO: add "Remove this branch from the train entirely"
 
+        Console.WriteLine();
         AnsiConsole.MarkupLine($"({branch.Name}): [link]{pr.HtmlUrl}[/]");
         var choice = AnsiConsole.Prompt(
             new SelectionPrompt<string>()

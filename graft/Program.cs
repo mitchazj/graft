@@ -139,39 +139,6 @@ AnsiConsole.Status()
         }
     });
 
-// TODO: exit if the repo is dirty / uncommitted changes
-// Get base branch status (as above)
-//   fetch origin/base DONE
-//   - make note of how many commits it is behind DONE
-//     - if it is ahead, this is a fail state. tell the user to resolve manually DONE
-// Get branch status (as above)
-//   for each branch
-//     fetch origin/branch DONE
-//     - is it a merged branch? DONE
-//         - if yes, skip it, but make note (so that the PR tables can be updated) DONE
-//     - check that there *is* an origin branch DONE
-//         - if there is not, make note of this for later (so we can create one) DONE
-//     - check if there are un-pulled commits on the origin DONE
-//         - if there are, make note of this for later (so we can pull them) DONE
-//     - check if there is a divergent history on the origin DONE
-//         - if there is, fail and notify the user to resolve manually DONE
-//     - check how many commits are on this branch that are not on the next branch DONE
-//
-// merge origin/base into local/base (should fast-forward) DONE
-// for each branch (skipping those marked as merged)
-//   merge origin/branch into local/branch (should fast-forward, but if not, pause for conflict resolution)
-// merge local/base into local/branch1 (or next, if branch1 is merged)
-// then merge local/branch1 into local/branch2, local/branch2 into local/branch3, etc (skipping merged branches)
-
-// TODO remaining:
-// for each branch (skipping those marked as merged)
-//   push local/branch to origin/branch, creating origin/branch if it does not exist
-// for each branch
-//   if there is a PR for the branch
-//     update the table
-//   else
-//     create a PR for the branch with updated table
-
 Console.WriteLine();
 
 var userName = repo.Config.Get<string>("user.name");
@@ -210,6 +177,13 @@ if (branches.First(x => x.Name == baseBranch).BehindOriginBy > 0)
             $"[yellow]Warning:[/] Encountered conflicts updating {baseBranch}, please resolve them in a seperate terminal before continuing.");
         Console.WriteLine();
         if (!Prompt.Confirm("Continue?")) return;
+        Thread.Sleep(100);
+        if (repo.RetrieveStatus().IsDirty)
+        {
+            AnsiConsole.MarkupLine(
+                $"[yellow]Warning:[/] Repo is diry, please fix before continuing.");
+            if (!Prompt.Confirm("Continue?")) return;
+        }
     }
 
     CompareToRemote(baseBranch);
@@ -245,6 +219,14 @@ for (var i = 0; i < branches.Count; ++i)
                 $"[yellow]Warning:[/] Encountered conflicts updating {branch.Name}, please resolve them in a seperate terminal before continuing.");
             Console.WriteLine();
             if (!Prompt.Confirm("Continue?")) return;
+            Thread.Sleep(100);
+            if (repo.RetrieveStatus().IsDirty)
+            {
+                AnsiConsole.MarkupLine(
+                    $"[yellow]Warning:[/] Repo is diry, please fix before continuing.");
+                if (!Prompt.Confirm("Continue?")) return;
+            }
+            // TODO: double-check that the above is correct and good
         }
 
         CompareToRemote(baseBranch);
@@ -308,18 +290,18 @@ AnsiConsole.Status()
 
 foreach (var branch in branches)
 {
-    if (branch.PullRequests.Exists(x => x.ClosedAt != null))
+    if (branch.Name == baseBranch) continue;
+    if (branch.IsMerged) continue;
+
+    if (!branch.PullRequests.Exists(x => x.ClosedAt == null))
     {
-        var pr = branch.PullRequests.Find(x => x.ClosedAt != null);
         var markMerged = $"Mark {branch.Name} as merged";
         var createNewPr = $"Create a new PR for {branch.Name}";
         // TODO: add "Remove this branch from the train entirely"
 
-        Console.WriteLine();
-        AnsiConsole.MarkupLine($"({branch.Name}): [link]{pr.HtmlUrl}[/]");
         var choice = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title($"The PR attached to {branch.Name} has been closed on origin. Would you like to")
+                .Title($"Every PR attached to {branch.Name} has been closed on origin. Would you like to")
                 .AddChoices(new[]
                 {
                     markMerged,
@@ -400,6 +382,12 @@ for (var i = 0; i < branches.Count; ++i)
         .Skip(1)
         .SkipWhile(x => x.IsMerged)
         .FirstOrDefault();
+
+    if (nextBranch.Name == baseBranch)
+    {
+        Console.WriteLine($"Nothing to graft {branch.Name} into");
+        continue;
+    }
 
     // We need to recompare at each iteration because we are modifying.
     CompareBranches(branch.Name, nextBranch.Name);
@@ -514,6 +502,21 @@ bool Graft(string branchName, string nextBranchName)
 
                 // return true even in failure case here so that we exit faster
                 return true;
+            }
+
+            Thread.Sleep(100);
+            if (repo.RetrieveStatus().IsDirty)
+            {
+                AnsiConsole.MarkupLine(
+                    $"[yellow]Warning:[/] Repo is diry, please fix before continuing.");
+                if (!Prompt.Confirm("Continue?"))
+
+                {
+                    Environment.Exit(1);
+
+                    // return true even in failure case here so that we exit faster
+                    return true;
+                }
             }
         }
 

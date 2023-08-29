@@ -315,12 +315,22 @@ foreach (var branch in branches)
         var createNewPr = "Create a new PR for this branch";
         // TODO: add "Remove this branch from the train entirely"
 
-        var choice = Prompt.Select($"The [PR attached to {branch.Name}]({pr.Url}) has been closed on origin. Would you like to",
-            new[]
-            {
-                markMerged,
-                createNewPr,
-            });
+        var choice = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("The [PR attached to {branch.Name}]({pr.Url}) has been closed on origin. Would you like to")
+                .AddChoices(new[]
+                {
+                    markMerged,
+                    createNewPr
+                }));
+
+//        var choice = Prompt.Select(
+//            $"The [PR attached to {branch.Name}]({pr.Url}) has been closed on origin. Would you like to",
+//            new[]
+//            {
+//                markMerged,
+//                createNewPr,
+//            });
 
         if (choice == markMerged)
         {

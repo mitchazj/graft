@@ -435,7 +435,7 @@ AnsiConsole.Status()
             }
 
             // Find the first pr that is open (ie doesn't have a "closed at" date)
-            var openPr = branch.PullRequests.Find(x => x.ClosedAt == null);
+            var openPr = branches.First(x => x.Name == previousBranch).PullRequests.Find(x => x.ClosedAt == null);
 
             if (openPr != null)
             {
@@ -476,11 +476,11 @@ AnsiConsole.Status()
             {
                 try
                 {
-                    var pullRequest = new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name,
-                        baseBranch)
-                    {
-                        Body = GenerateTrainTable(previousBranch, branches)
-                    };
+                    var pullRequest =
+                        new NewPullRequest($"Merge {branch.Name} into {baseBranch}", branch.Name, baseBranch)
+                        {
+                            Body = GenerateTrainTable(branch.Name, branches)
+                        };
                     var createdPullRequestTask = client.PullRequest.Create(owner, repoName, pullRequest);
                     createdPullRequestTask.Wait();
                     AnsiConsole.MarkupLine($"[gray]Created a pr for {branch.Name}[/]");
@@ -488,7 +488,7 @@ AnsiConsole.Status()
                 catch
                 {
                     AnsiConsole.MarkupLine(
-                        $"[red]Coultn't create a pr for {previousBranch}, please check that origin exists and that there are sufficient changes[/]");
+                        $"[red]Coultn't create a pr for {branch.Name}, please check that origin exists and that there are sufficient changes[/]");
                 }
             }
         }

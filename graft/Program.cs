@@ -438,10 +438,10 @@ AnsiConsole.Status()
                 AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {branch.Name}[/]");
             }
 
-            if (previousBranch == "" && !branch.IsMerged)
+            if (previousBranch == "")
             {
                 if (EXCESSIVE_DEBUG) Console.WriteLine($"Set previous branch as {branch.Name}");
-                previousBranch = branch.Name;
+                if (!branch.IsMerged) previousBranch = branch.Name;
                 // TODO: I think I need to do something here
                 continue;
             }

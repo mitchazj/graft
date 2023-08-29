@@ -309,6 +309,9 @@ AnsiConsole.Status()
 
 foreach (var branch in branches)
 {
+    if (branch.Name == baseBranch) continue;
+    if (branch.IsMerged) continue;
+    
     if (!branch.PullRequests.Exists(x => x.ClosedAt == null))
     {
         var markMerged = $"Mark {branch.Name} as merged";

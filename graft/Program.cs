@@ -430,6 +430,7 @@ AnsiConsole.Status()
             if (previousBranch == "")
             {
                 previousBranch = branch.Name;
+                // TODO: I think I need to do something here
                 continue;
             }
 

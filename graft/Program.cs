@@ -482,7 +482,6 @@ AnsiConsole.Status()
             if (EXCESSIVE_DEBUG) Console.WriteLine($"Looking at {branch.Name} for merging into master");
             if (EXCESSIVE_DEBUG) Console.WriteLine($"It has {branch.PullRequests.Count} pull requests");
 
-            // TODO: technically we update a branch twice here, fix later.
             foreach (var pr in branch.PullRequests)
             {
                 PullRequestUpdate update = new PullRequestUpdate();

@@ -578,7 +578,7 @@ AnsiConsole.Status()
             foreach (var pr in branch.PullRequests)
             {
                 PullRequestUpdate update = new PullRequestUpdate();
-                update.Body = GenerateTrainTable(branch.Name, branches);
+                update.Body = SubstituteTrainTable(pr.Body, GenerateTrainTable(branch.Name, branches));
                 client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
                 AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {branch.Name}[/]");
             }
@@ -630,7 +630,7 @@ AnsiConsole.Status()
             foreach (var pr in branch.PullRequests)
             {
                 PullRequestUpdate update = new PullRequestUpdate();
-                update.Body = GenerateTrainTable(previousBranch, branches);
+                update.Body = SubstituteTrainTable(pr.Body, GenerateTrainTable(previousBranch, branches));
                 client.PullRequest.Update(owner, repoName, pr.Number, update).Wait();
                 AnsiConsole.MarkupLine($"[gray]Updated pr #{pr.Number} for {previousBranch}[/]");
             }
@@ -938,6 +938,14 @@ void FetchBranches()
     branches.First(x => x.Name == branchName).BehindOriginBy = (int)behind;
 
     return (ahead, behind);
+}
+
+string SubstituteTrainTable(string existingBody, string newTable)
+{
+    var toc = "<pr-train-toc>";
+    var locationOfStart = existingBody.IndexOf(toc);
+    var locationOfEnd = existingBody.LastIndexOf(toc);
+    return existingBody.Substring(0, locationOfStart) + newTable + existingBody.Substring(locationOfEnd + toc.Length);
 }
 
 string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)

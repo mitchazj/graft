@@ -480,7 +480,7 @@ catch
     return;
 }
 
-var shouldUpdateOnMaster = Prompt.Confirm("Update this train on master?");
+var shouldUpdateOnMaster = Prompt.Confirm($"Update this train on {baseBranch}?");
 if (shouldUpdateOnMaster)
 {
     bool result = Graft(baseBranch, firstBranchNotMerged.Name);

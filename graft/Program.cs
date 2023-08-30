@@ -988,7 +988,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
             var isMergedAppendable = pr.ClosedAt != null ? "`merged`" : "`open`";
             if (!title.Contains("(ignore)"))
             {
-                table += $"| {isBranchAppendable} | #{pr.Number} | {isMergedAppendable} | {pr.Title} |\n";
+                table += $"| {isBranchAppendable} | #{pr.Number} | {isMergedAppendable} | {title} |\n";
             }
         }
     }

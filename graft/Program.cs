@@ -947,6 +947,11 @@ string SubstituteTrainTable(string existingBody, string newTable)
     var closeToc = "</pr-train-toc>";
     var locationOfStart = existingBody.IndexOf(openToc);
     var locationOfEnd = existingBody.LastIndexOf(closeToc);
+    if (locationOfStart == -1 || locationOfEnd == -1)
+    {
+        return newTable + "\n \n" + existingBody;
+    }
+
     return existingBody.Substring(0, locationOfStart) + newTable +
            existingBody.Substring(locationOfEnd + closeToc.Length);
 }

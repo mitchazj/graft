@@ -187,7 +187,6 @@ bool IsRepoDirty()
     }
 
     return isDirty;
-
 }
 
 bool IsMergeConflict(string mergeOutput)
@@ -948,7 +947,8 @@ string SubstituteTrainTable(string existingBody, string newTable)
     var closeToc = "</pr-train-toc>";
     var locationOfStart = existingBody.IndexOf(openToc);
     var locationOfEnd = existingBody.LastIndexOf(closeToc);
-    return existingBody.Substring(0, locationOfStart) + newTable + existingBody.Substring(locationOfEnd + closeToc.Length);
+    return existingBody.Substring(0, locationOfStart) + newTable +
+           existingBody.Substring(locationOfEnd + closeToc.Length);
 }
 
 string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
@@ -979,8 +979,12 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
                 : 0));
         foreach (var pr in prs)
         {
+            var title = pr.Title.Replace("[merged]", "").Trim();
             var isMergedAppendable = pr.ClosedAt != null ? "`merged`" : "`open`";
-            table += $"| {isBranchAppendable} | #{pr.Number} | {isMergedAppendable} | {pr.Title} |\n";
+            if (!title.Contains("(ignore)"))
+            {
+                table += $"| {isBranchAppendable} | #{pr.Number} | {isMergedAppendable} | {pr.Title} |\n";
+            }
         }
     }
 

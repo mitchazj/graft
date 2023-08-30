@@ -944,10 +944,11 @@ void FetchBranches()
 
 string SubstituteTrainTable(string existingBody, string newTable)
 {
-    var toc = "<pr-train-toc>";
-    var locationOfStart = existingBody.IndexOf(toc);
-    var locationOfEnd = existingBody.LastIndexOf(toc);
-    return existingBody.Substring(0, locationOfStart) + newTable + existingBody.Substring(locationOfEnd + toc.Length);
+    var openToc = "<pr-train-toc>";
+    var closeToc = "</pr-train-toc>";
+    var locationOfStart = existingBody.IndexOf(openToc);
+    var locationOfEnd = existingBody.LastIndexOf(closeToc);
+    return existingBody.Substring(0, locationOfStart) + newTable + existingBody.Substring(locationOfEnd + closeToc.Length);
 }
 
 string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
@@ -983,7 +984,7 @@ string GenerateTrainTable(string thisBranch, List<GraftBranch> branches)
         }
     }
 
-    table += "\n \r\n<pr-train-toc>";
+    table += "\n \r\n</pr-train-toc>";
     return table;
 }
 

@@ -205,7 +205,8 @@ GraftMergeResult MergeBranch(string sourceBranch)
         ProcessStartInfo startInfo = new ProcessStartInfo
         {
             FileName = "git",
-            Arguments = $"merge --no-commit {sourceBranch}",
+            // Arguments = $"merge --no-commit {sourceBranch}",
+            Arguments = $"merge {sourceBranch}",
             WorkingDirectory = rootPath,
             RedirectStandardOutput = true,
             UseShellExecute = false,
@@ -235,53 +236,61 @@ GraftMergeResult MergeBranch(string sourceBranch)
     }
     else
     {
-        try
-        {
-            ProcessStartInfo commitInfo = new ProcessStartInfo
-            {
-                FileName = "git",
-                Arguments = "add .",
-                WorkingDirectory = rootPath,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+        // Console.WriteLine("Attempting to complete merge...");
+        // Thread.Sleep(300);
 
-            using (Process commitProcess = new Process())
-            {
-                commitProcess.StartInfo = commitInfo;
-                commitProcess.Start();
-                commitProcess.WaitForExit();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("An error occurred while adding files to the merge: " + ex.Message);
-            return GraftMergeResult.Error;
-        }
+        // try
+        // {
+        //     ProcessStartInfo commitInfo = new ProcessStartInfo
+        //     {
+        //         FileName = "git",
+        //         Arguments = "add .",
+        //         WorkingDirectory = rootPath,
+        //         RedirectStandardOutput = true,
+        //         UseShellExecute = false,
+        //         CreateNoWindow = true
+        //     };
 
-        try
-        {
-            ProcessStartInfo commitInfo = new ProcessStartInfo
-            {
-                FileName = "git",
-                Arguments = "commit -m 'Merge branch " + sourceBranch + "'",
-                WorkingDirectory = rootPath,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+        //     using (Process commitProcess = new Process())
+        //     {
+        //         commitProcess.StartInfo = commitInfo;
+        //         commitProcess.Start();
+        //         commitProcess.WaitForExit();
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     Console.WriteLine("An error occurred while adding files to the merge: " + ex.Message);
+        //     return GraftMergeResult.Error;
+        // }
 
-            using (Process commitProcess = new Process())
-            {
-                commitProcess.StartInfo = commitInfo;
-                commitProcess.Start();
-                commitProcess.WaitForExit();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("An error occurred while committing the merge: " + ex.Message);
-            return GraftMergeResult.Error;
-        }
+        // Console.WriteLine($"Finishing merge... `commit -m 'Merging in {sourceBranch}'`");
+        // Thread.Sleep(300);
+
+        // try
+        // {
+        //     ProcessStartInfo commitInfo = new ProcessStartInfo
+        //     {
+        //         FileName = "git",
+        //         Arguments = $"commit -m 'Merging in {sourceBranch}'",
+        //         WorkingDirectory = rootPath,
+        //         RedirectStandardOutput = true,
+        //         UseShellExecute = false,
+        //         CreateNoWindow = true
+        //     };
+
+        //     using (Process commitProcess = new Process())
+        //     {
+        //         commitProcess.StartInfo = commitInfo;
+        //         commitProcess.Start();
+        //         commitProcess.WaitForExit();
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     Console.WriteLine("An error occurred while committing the merge: " + ex.Message);
+        //     return GraftMergeResult.Error;
+        // }
 
         return GraftMergeResult.Success;
     }
